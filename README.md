@@ -1,61 +1,123 @@
-# narrator-ai-cli Skill
+# 🧠 Narrator AI CLI Skill — Teach Your AI Agent to Create Movie Narration Videos
 
-> AI Agent skill for [narrator-ai-cli](https://github.com/jieshuo-ai/narrator-ai-cli) — CLI client for Narrator AI video narration API.
+[中文文档](README_CN.md)
+
+> Install this Skill in your AI agent (OpenClaw, Windsurf, WorkBuddy, etc.), then just say "create a movie narration video" — the AI handles the rest.
 
 ## What is this?
 
-A machine-readable skill file (`SKILL.md`) that teaches AI agents how to use the `narrator-ai-cli` tool for automated video narration production.
+A machine-readable skill file (`SKILL.md`) that teaches AI agents how to use the [narrator-ai-cli](https://github.com/jieshuo-ai/narrator-ai-cli) tool for automated video narration production.
 
-When loaded by an AI agent (e.g., [OpenClaw](https://github.com/openclaw/openclaw), Claude Code, Cursor, Windsurf), it provides structured instructions for the complete video narration pipeline.
+```
+You say: "Create a narration video for Pegasus in a comedy style"
 
-## Capabilities
+AI executes: Search movie → Select template → Choose BGM → Pick voice → Generate script → Compose video → Return download link
+```
 
-- **Two workflow paths**: Adapted Narration (二创文案) and Original Narration (原创文案)
-- **Three modes**: Hot Drama / Original Mix / New Drama
-- **Pre-built resources**: 93 movies, 146 BGM tracks, 63 dubbing voices, 90+ narration style templates across 12 genres
-- **Full pipeline**: narration script → clip data → video composing → magic video
-- **Standalone tasks**: voice cloning, text-to-speech
-- **Complete data flow mapping**: which output feeds into which input
-- **Error handling**: all 18 API error codes with recommended actions
-- **Cost estimation**: budget and material verification before task creation
+### How CLI and Skill work together
+
+| | CLI (command-line tool) | Skill (capability description) |
+|---|---|---|
+| **What it is** | A set of executable commands | Instructions that teach AI how to use those commands |
+| **Analogy** | Kitchen tools | A recipe book |
+| **Works alone?** | Yes, in terminal manually | No, requires CLI |
+
+In short: **CLI is the hands. Skill is the brain.** Together, the AI agent can produce videos end-to-end.
+
+---
 
 ## Quick Start
 
-### 1. Install the CLI tool
+### Step 1: Install the CLI tool
 
 ```bash
 pip install "narrator-ai-cli @ git+https://github.com/jieshuo-ai/narrator-ai-cli.git"
 ```
 
-### 2. Configure API key
+> See [narrator-ai-cli](https://github.com/jieshuo-ai/narrator-ai-cli) for detailed installation options.
+
+### Step 2: Configure API key
 
 ```bash
 narrator-ai-cli config set app_key <your_app_key>
 ```
 
-### 3. Install the skill
+> 📧 Need an API key? Email **merlinyang@gridltd.com** or scan the QR code at the bottom of this page.
+
+### Step 3: Install the Skill
+
+Choose the method for your agent platform:
 
 **OpenClaw:**
-
 ```bash
 mkdir -p ~/.openclaw/skills/narrator-ai-cli
 cp SKILL.md ~/.openclaw/skills/narrator-ai-cli/SKILL.md
 ```
 
-**Claude Code / Cursor / Windsurf:**
+**WorkBuddy / QClaw (Tencent):**
 
+Upload `SKILL.md` through the skill management UI.
+
+**Windsurf:**
 ```bash
-# Copy to your project's agent skills directory
 cp SKILL.md /path/to/your/project/.skills/narrator-ai-cli/SKILL.md
 ```
 
-**Or any agent that reads markdown skill files:**
+**Claude Code / Cursor:**
+```bash
+cp SKILL.md /path/to/your/project/.skills/narrator-ai-cli/SKILL.md
+```
 
+**Any markdown-reading agent:**
 ```bash
 cp SKILL.md /path/to/agent/skills/narrator-ai-cli/SKILL.md
 ```
 
-## What's in SKILL.md?
+> 💡 **Tip**: You can also just give the agent this repo URL — most agents can read the GitHub repo structure and auto-configure.
+
+### Step 4: Start talking!
+
+Once installed, use natural language:
+
+- "Create a narration video for The Shawshank Redemption"
+- "Show me what movies are available"
+- "Make 5 narration videos for different action movies"
+- "Use a comedy template and generate a narration"
+
+---
+
+---
+
+## Tested Platforms
+
+| Platform | Setup | Status |
+|----------|-------|--------|
+| **OpenClaw** | Native skill loading | ✅ Verified |
+| **Windsurf** | .skills directory | ✅ Verified |
+| **WorkBuddy** (Tencent) | Upload SKILL.md | ✅ Verified |
+| **QClaw** (Tencent) | Upload SKILL.md | ✅ Verified |
+| **Youdao Lobster** | Skill loading | ✅ Verified |
+| **Yuanqi AI** | Skill loading | ✅ Verified |
+| **Claude Code** | SKILL.md in project root | ✅ Verified |
+| **Cursor** | rules/skills directory | ✅ Verified |
+| Any markdown-skill agent | Point to SKILL.md | ✅ Compatible |
+
+---
+
+## Capabilities
+
+| Feature | Details |
+|---------|---------|
+| Two workflow paths | Adapted Narration and Original Narration |
+| Three creation modes | Hot Drama / Original Mix / New Drama |
+| Built-in resources | 93 movies, 146 BGM tracks, 63 dubbing voices, 90+ narration templates |
+| Full pipeline | Script → Clip data → Video composing → Visual template |
+| Standalone tasks | Voice cloning, text-to-speech |
+| Data flow mapping | Which output feeds into which input |
+| Error handling | All 18 API error codes with recommended actions |
+| Cost estimation | Budget verification before task creation |
+
+### What's in SKILL.md
 
 | Section | Description |
 |---------|-------------|
@@ -73,32 +135,29 @@ cp SKILL.md /path/to/agent/skills/narrator-ai-cli/SKILL.md
 | Data Flow | ASCII diagram of complete pipeline |
 | Important Notes | 9 critical gotchas and best practices |
 
-## Compatibility
+---
 
-| Platform | Tested | Notes |
-|----------|--------|-------|
-| OpenClaw | ✅ | Native skill loading |
-| Claude Code | ✅ | SKILL.md in project root |
-| Cursor | ✅ | Via rules/skills directory |
-| Windsurf | ✅ | Via rules directory |
-| Any markdown-reading agent | ✅ | Just point to SKILL.md |
-
-## CLI Requirements
+## Requirements
 
 - **CLI**: narrator-ai-cli v0.1.0+
 - **Python**: 3.10+
 - **Dependencies**: typer, httpx[socks], httpx-sse, pyyaml, rich
-- **API key**: Get from Narrator AI platform
+- **API key**: Contact us to get one
 
 ## Links
 
-- [narrator-ai-cli CLI repo](https://github.com/jieshuo-ai/narrator-ai-cli)
-- [Narrator AI resources preview (Feishu)](https://ceex7z9m67.feishu.cn/wiki/WLPnwBysairenFkZDbicZOfKnbc)
-- [OpenClaw agent framework](https://github.com/openclaw/openclaw)
+- 📦 [narrator-ai-cli CLI repo](https://github.com/jieshuo-ai/narrator-ai-cli)
+- 📖 [Resource preview (Feishu Docs)](https://ceex7z9m67.feishu.cn/wiki/WLPnwBysairenFkZDbicZOfKnbc)
+- 🦞 [OpenClaw agent framework](https://github.com/openclaw/openclaw)
 
 ## Contact
 
-![Contact](imgs/contact.png)
+Need an API key or help?
+
+- 📧 Email: merlinyang@gridltd.com
+- 💬 WeChat: Scan the QR code below
+
+![Contact us](imgs/contact.png)
 
 ## License
 
