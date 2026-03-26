@@ -96,6 +96,10 @@ cp SKILL.md /path/to/agent/skills/narrator-ai-cli/SKILL.md
 - [Narrator AI resources preview (Feishu)](https://ceex7z9m67.feishu.cn/wiki/WLPnwBysairenFkZDbicZOfKnbc)
 - [OpenClaw agent framework](https://github.com/openclaw/openclaw)
 
+## Contact
+
+![Contact](imgs/contact.png)
+
 ## License
 
 MIT

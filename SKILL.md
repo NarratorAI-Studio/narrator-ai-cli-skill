@@ -26,8 +26,8 @@ CLI client for [Narrator AI](https://openapi.jieshuo.cn) video narration API. De
 # From GitHub (recommended)
 pip install "narrator-ai-cli @ git+https://github.com/jieshuo-ai/narrator-ai-cli.git"
 
-# Or one-line install script (clone + virtualenv + PATH setup)
-curl -fsSL https://raw.githubusercontent.com/jieshuo-ai/narrator-ai-cli/main/install.sh | bash
+# Or one-line install (see latest instructions at GitHub repo)
+# https://github.com/jieshuo-ai/narrator-ai-cli
 
 # Or clone + editable install
 git clone https://github.com/jieshuo-ai/narrator-ai-cli.git
@@ -428,6 +428,8 @@ narrator-ai-cli user create-key --json   # create a new sub API key
 
 ## Error Handling
 
+> **Support Contact** (for balance/billing issues): WeChat `gezimufeng`, or email `merlinyang@gridltd.com`
+
 | Code | Meaning | Action |
 |------|---------|--------|
 | `10000` | Success | - |
@@ -439,11 +441,11 @@ narrator-ai-cli user create-key --json   # create a new sub API key
 | `10006` | Invalid timestamp | Check clock sync |
 | `10007` | Not found | Check resource ID |
 | `10008` | Invalid method | Check HTTP method |
-| `10009` | Insufficient balance | Top up account |
+| `10009` | Insufficient balance | Contact support to top up (see **Support Contact** above) |
 | `10010` | Task not found | Verify task_id |
 | `10011` | Task create failed | Retry or check params |
 | `10012` | Task type not found | Use `task types` to list valid types |
-| `10013` | Insufficient balance (key) | Check sub-key quota |
+| `10013` | Insufficient balance (key) | Contact support to top up sub-key quota (see **Support Contact** above) |
 | `40000` | Gradio timeout | Retry (backend overloaded) |
 | `50000` | Unauthorized | Check auth config |
 | `50001` | Database error | Retry later |
