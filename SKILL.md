@@ -1,16 +1,31 @@
 ---
 name: narrator-ai-cli
-description: "CLI client for Narrator AI video narration API. Create AI-narrated videos: popular-learning, generate-writing, clip-data, video-composing, magic-video. Supports Hot Drama / Original Mix / New Drama modes. 93 pre-built movies, 146 BGM tracks, 63 dubbing voices, 90+ narration templates. Supports uploading local files or transferring from HTTP/Baidu/PikPak links. Use when user needs to create AI narration videos, manage narration tasks, browse dubbing/BGM/material resources, or automate video production via narrator-ai-cli."
+version: "1.0.0"
+license: MIT
+description: >-
+  Create AI-narrated film/drama commentary videos via CLI.
+  Two workflow paths (Original & Adapted narration), 93 movies,
+  146 BGM tracks, 63 dubbing voices in 11 languages, 90+
+  narration templates. Use when creating narration videos,
+  film commentary, short drama dubbing, or video production.
 user-invocable: true
+tags:
+  - video-narration
+  - film-commentary
+  - ai-video
+  - short-drama
+  - content-creation
+  - dubbing
+  - tts
+  - video-production
 metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "🎬",
-        "requires": { "bins": ["narrator-ai-cli"] },
-        "primaryEnv": "NARRATOR_APP_KEY",
-      },
-  }
+  openclaw:
+    emoji: "🎬"
+    requires:
+      bins:
+        - narrator-ai-cli
+      primaryEnv:
+        - NARRATOR_APP_KEY
 ---
 
 # narrator-ai-cli — AI Video Narration CLI Skill
