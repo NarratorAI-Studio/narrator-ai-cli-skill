@@ -22,6 +22,10 @@
     "dubbing",
     "tts"
   ],
+  "requires": {
+    "bins": ["narrator-ai-cli"],
+    "primaryEnv": ["NARRATOR_APP_KEY"]
+  },
   "skills": {
     "narrator-ai-cli": {
       "path": "SKILL.md"

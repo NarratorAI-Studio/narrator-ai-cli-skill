@@ -38,11 +38,11 @@ CLI client for [Narrator AI](https://openapi.jieshuo.cn) video narration API. De
 ## Installation
 
 ```bash
-# From GitHub (recommended)
-pip install "narrator-ai-cli @ git+https://github.com/jieshuo-ai/narrator-ai-cli.git"
+# From GitHub release (recommended — pinned to a specific version)
+pip install "narrator-ai-cli @ https://github.com/jieshuo-ai/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
 
-# Or one-line install (see latest instructions at GitHub repo)
-# https://github.com/jieshuo-ai/narrator-ai-cli
+# Or from GitHub latest (tracks main branch)
+pip install "narrator-ai-cli @ git+https://github.com/jieshuo-ai/narrator-ai-cli.git"
 
 # Or clone + editable install
 git clone https://github.com/jieshuo-ai/narrator-ai-cli.git
@@ -525,3 +525,10 @@ CLI exits code 1 on any error, prints to stderr.
 7. **Use `-d @file.json`** for large request bodies to avoid shell quoting issues.
 8. **Use `task verify`** before creating expensive tasks to catch missing/invalid materials early.
 9. **Use `task budget`** to estimate points cost before committing to a task.
+
+## 🔒 Data & Privacy
+
+- **API Endpoint**: All API requests are sent to `https://openapi.jieshuo.cn` (the Narrator AI service). No data is sent to any other third-party service.
+- **File Upload**: The file upload flow (presigned URL → OSS PUT → callback) transfers user-provided media files to the Narrator AI cloud for server-side video processing. Uploaded files are bound to your account and are not shared publicly.
+- **Credentials**: An API key (`NARRATOR_APP_KEY`) is required and stored locally at `~/.narrator-ai/config.yaml`. Keep this file private and do not commit it to version control.
+- **Scope**: This skill only orchestrates CLI commands — it does not access, read, or transmit any files beyond those you explicitly provide as input to a task.
