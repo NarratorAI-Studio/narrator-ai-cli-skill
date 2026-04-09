@@ -326,18 +326,13 @@ Save: `file_ids[0]` (for optional magic-video staged mode), `order_info.order_nu
 
 ### Step 3: Video Composing
 
-**IMPORTANT**: `order_num` comes from fast-clip-data (step 2).
+**IMPORTANT**: `order_num` comes from fast-clip-data (step 2). This is the **only required parameter**.
 
 ```bash
 narrator-ai-cli task create video-composing --json -d '{
-  "order_num": "<task_order_num from step 2>",
-  "bgm": "<bgm_id>",
-  "dubbing": "<voice_id>",
-  "dubbing_type": "普通话"
+  "order_num": "<task_order_num from step 2>"
 }'
 ```
-
-Optional: custom_cover, subtitle_style, font_path
 
 **Output**: On creation returns `data.task_id`. Poll `task query <task_id> --json` until `status=2`. Extract `video_url` from results:
 
