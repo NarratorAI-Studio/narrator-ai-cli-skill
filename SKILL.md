@@ -295,34 +295,26 @@ Save: `task_id` from creation response (for fast-clip-data `task_id` input), `fi
 
 ### Step 2: Fast Clip Data
 
+**Input**: `task_id` and `file_id` from Fast Writing (step 1), plus `bgm`, `dubbing`, `episodes_data`.
+
 ```bash
 narrator-ai-cli task create fast-clip-data --json -d '{
   "task_id": "<task_id from step 1>",
-  "file_id": "<results.file_ids[0] from step 1>",
+  "file_id": "<file_id from step 1>",
   "bgm": "<bgm_id>",
   "dubbing": "<voice_id>",
-  "dubbing_type": "普通话",
+  "dubbing_type": "<dubbing_type from selected voice>",
   "episodes_data": [{"video_oss_key": "<video_file_id>", "srt_oss_key": "<srt_file_id>", "negative_oss_key": "<video_file_id>", "num": 1}]
 }'
 ```
 
-Optional: narration_script_file, custom_cover, subtitle_style, font_path
-
-**Output**: On creation returns `data.task_id`. Poll `task query <task_id> --json` until `status=2`. Extract `file_ids[0]` and `order_info.order_num`:
+**Output**: Creation response:
 
 ```json
-{
-  "tasks": [{
-    "clip_data_file_id": "0a58eca6b1784e4e93cd7e65e86c19b6"
-  }],
-  "file_ids": ["0a58eca6b1784e4e93cd7e65e86c19b6"],
-  "order_info": {
-    "order_num": "b7a83b9d290ed4641e74629c8cc0480e"
-  }
-}
+{"code": 10000, "message": "", "data": {"task_id": ""}}
 ```
 
-Save: `file_ids[0]` (for optional magic-video staged mode), `order_info.order_num` — **required for video-composing**.
+Save `data.task_id`. Poll `task query <task_id> --json` until `status=2`. On success, read `task_order_num` from the task record — this is the `order_num` required for video-composing (step 3).
 
 ### Step 3: Video Composing
 
@@ -432,30 +424,24 @@ Save: `task_id` from the initial creation response — **required as input for c
 
 ### Step 3: Clip Data
 
+**Input**: `task_id` from generate-writing (step 2), plus `bgm` and `dubbing`.
+
 ```bash
 narrator-ai-cli task create clip-data --json -d '{
   "task_id": "<task_id from step 2 (generate-writing) creation response>",
   "bgm": "<bgm_id>",
   "dubbing": "<voice_id>",
-  "dubbing_type": "普通话"
+  "dubbing_type": "<dubbing_type from selected voice>"
 }'
 ```
 
-**Output**: On creation returns `data.task_id`. Poll `task query <task_id> --json` until `status=2`. Extract `file_ids[0]` and `order_info.order_num`:
+**Output**: Creation response:
 
 ```json
-{
-  "tasks": [{
-    "clip_data_file_id": "1c54f4f3626d4070acd40a786408a4b5"
-  }],
-  "file_ids": ["1c54f4f3626d4070acd40a786408a4b5"],
-  "order_info": {
-    "order_num": "d5580ea2aaf6b15d2ea259fbf7ea93dc"
-  }
-}
+{"code": 10000, "message": "", "data": {"task_id": ""}}
 ```
 
-Save: `file_ids[0]` (for optional magic-video staged mode), `order_info.order_num` — **required for video-composing**.
+Save `data.task_id`. Poll `task query <task_id> --json` until `status=2`. On success, read `task_order_num` from the task record — this is the `order_num` required for video-composing (step 4).
 
 ### Step 4-5: Same as Fast Path Steps 3-4
 
