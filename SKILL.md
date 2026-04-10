@@ -247,17 +247,35 @@ Returns up to 3 results. Each result contains:
 
 ### Step 1: Fast Writing
 
+**Decision flow — determine `target_mode` in order:**
+
+1. Run `material list --search "<movie name>"` first.
+2. **Found in pre-built materials** → `target_mode: "2"`, use material's `srt_id` as `srt_oss_key` in `episodes_data`. Skip Step 0.
+3. **Not found** → do NOT pick `target_mode` yet. Run Step 0 (`search-movie`) first, then use `target_mode: "1"` with the returned `confirmed_movie_json`.
+4. **User provides their own SRT** → `target_mode: "2"` (known drama/movie) or `"3"` (obscure/new title), construct `episodes_data` with the uploaded `srt_oss_key`. Skip Step 0.
+
 ```bash
-# Save search result, then write full request body to a JSON file (required for confirmed_movie_json)
-# request.json:
-# {
-#   "learning_model_id": "<from narration-styles>",
-#   "target_mode": "1",
-#   "playlet_name": "飞驰人生",
-#   "confirmed_movie_json": { ...paste search-movie result object... },
-#   "model": "flash"
-# }
+# Case A: Pre-built material found (target_mode=2) — skip Step 0
+narrator-ai-cli task create fast-writing --json -d '{
+  "learning_model_id": "<from narration-styles>",
+  "target_mode": "2",
+  "playlet_name": "飞驰人生",
+  "episodes_data": [{"srt_oss_key": "<material srt_id>", "num": 1}],
+  "model": "flash"
+}'
+
+# Case B: Not in pre-built materials — run Step 0 first, then target_mode=1
 narrator-ai-cli task create fast-writing --json -d @request.json
+# request.json: {"learning_model_id": "...", "target_mode": "1", "playlet_name": "...", "confirmed_movie_json": {...}, "model": "flash"}
+
+# Case C: User's own SRT (target_mode=2 or 3) — skip Step 0
+narrator-ai-cli task create fast-writing --json -d '{
+  "learning_model_id": "<from narration-styles>",
+  "target_mode": "2",
+  "playlet_name": "<drama name>",
+  "episodes_data": [{"srt_oss_key": "<uploaded srt file_id>", "num": 1}],
+  "model": "flash"
+}'
 ```
 
 **Full parameters:**
