@@ -25,7 +25,7 @@ metadata:
     install:
       - name: narrator-ai-cli
         type: pip
-        spec: "narrator-ai-cli @ https://github.com/jieshuo-ai/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
+        spec: "narrator-ai-cli @ https://github.com/GridLtd-ProductDev/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
     requires:
       bins:
         - narrator-ai-cli
@@ -37,20 +37,20 @@ metadata:
 
 CLI client for [Narrator AI](https://openapi.jieshuo.cn) video narration API. Designed for AI Agents and developers.
 
-**CLI Repo**: https://github.com/jieshuo-ai/narrator-ai-cli
+**CLI Repo**: https://github.com/GridLtd-ProductDev/narrator-ai-cli
 **Resources Preview**: https://ceex7z9m67.feishu.cn/wiki/WLPnwBysairenFkZDbicZOfKnbc
 
 ## Installation
 
 ```bash
 # From GitHub release (recommended — pinned to a specific version)
-pip install "narrator-ai-cli @ https://github.com/jieshuo-ai/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
+pip install "narrator-ai-cli @ https://github.com/GridLtd-ProductDev/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
 
 # Or from GitHub latest (tracks main branch)
-pip install "narrator-ai-cli @ git+https://github.com/jieshuo-ai/narrator-ai-cli.git"
+pip install "narrator-ai-cli @ git+https://github.com/GridLtd-ProductDev/narrator-ai-cli.git"
 
 # Or clone + editable install
-git clone https://github.com/jieshuo-ai/narrator-ai-cli.git
+git clone https://github.com/GridLtd-ProductDev/narrator-ai-cli.git
 cd narrator-ai-cli && pip install -e .
 ```
 
