@@ -3,14 +3,14 @@
   "version": "1.0.1",
   "description": "AI Agent skill for narrator-ai-cli — create AI-narrated film/drama commentary videos end-to-end via natural language commands. Supports two workflow paths, 93 movies, 146 BGM tracks, 63 dubbing voices, 90+ narration templates.",
   "author": {
-    "name": "jieshuo-ai",
+    "name": "GridLtd-ProductDev",
     "email": "merlinyang@gridltd.com",
     "url": "https://github.com/jieshuo-ai"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jieshuo-ai/narrator-ai-cli-skill.git"
+    "url": "https://github.com/GridLtd-ProductDev/narrator-ai-cli-skill.git"
   },
   "keywords": [
     "video-narration",
@@ -27,7 +27,7 @@
     {
       "name": "narrator-ai-cli",
       "type": "pip",
-      "spec": "narrator-ai-cli @ https://github.com/jieshuo-ai/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
+      "spec": "narrator-ai-cli @ https://github.com/GridLtd-ProductDev/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
     }
   ],
   "requires": {
