@@ -1,13 +1,9 @@
 ---
 name: narrator-ai-cli
-version: "1.0.1"
+version: "1.0.2"
 license: MIT
 description: >-
-  Create AI-narrated film/drama commentary videos via CLI.
-  Two workflow paths (Original & Adapted narration), 100+ movies,
-  146 BGM tracks, 63 dubbing voices in 11 languages, 90+
-  narration templates. Use when creating narration videos,
-  film commentary, short drama dubbing, or video production.
+  AI电影解说视频自动生成技能（AI解说大师 CLI Skill）。当用户需要创建电影解说视频、短剧解说、影视二创、AI配音旁白视频、film commentary、video narration、drama dubbing、movie narration时触发。内置93部电影素材、146首BGM、63种配音音色（11种语言）、90+解说模板。通过narrator-ai-cli命令行工具实现：搜片选片→选择模板→选BGM→选配音→生成文案→合成视频的全流程自动化。CLI client for Narrator AI (AI解说大师) video narration API. Use when user needs to create AI narration videos, manage narration tasks, browse dubbing/BGM/material resources, or automate video production.
 user-invocable: true
 tags:
   - video-narration
