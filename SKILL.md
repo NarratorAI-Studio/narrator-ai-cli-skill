@@ -235,6 +235,8 @@ narrator-ai-cli bgm list --search "单车" --json
 ### 3. Dubbing Voice
 
 > ⚠️ **Agent behavior**: Infer the target language from context; if ambiguous, ask the user before listing. Run `dubbing list --lang <language>` to filter, then present **all matching voices** (typically < 15 per language) — include name and tags. If the user has no preference, recommend **3 voices** with reasoning (e.g., "neutral tone fits documentary narration style") and wait for confirmation. Do NOT use a dubbing `id` or `dubbing_type` in any task until the user confirms both.
+>
+> ⚠️ **Language linkage**: Once the dubbing voice is confirmed, the narration script language must match. If the selected voice is **not Chinese (普通话)**, the agent MUST set the `language` parameter in the writing task (fast-writing or generate-writing) to the corresponding language — do NOT leave it at the default `"Chinese (中文)"`. Carry this language value forward from the dubbing selection step to the writing task creation step. If the user has already specified a `language` value, verify it matches the dubbing language; if they conflict, surface the mismatch and ask the user to resolve it before proceeding.
 
 ```bash
 narrator-ai-cli dubbing list --json                 # 63 voices, 11 languages
@@ -360,7 +362,7 @@ narrator-ai-cli task create fast-writing --json -d '{
 | `confirmed_movie_json` | obj | mode=1,2; optional mode=3 | - | From material data (mode=2 pre-built) or `search-movie` result (mode=1, mode=2 user SRT). Never fabricate. |
 | `episodes_data` | list | mode=2,3 | - | For fast-writing: `[{srt_oss_key, num}]`. For fast-clip-data: `[{video_oss_key, srt_oss_key, negative_oss_key, num}]` — the video fields are added at the clip-data step. |
 | `model` | str | No | "pro" | "pro" (higher quality, 15pts/char) or "flash" (faster, 5pts/char) |
-| `language` | str | No | "Chinese (中文)" | Output language |
+| `language` | str | No | "Chinese (中文)" | Output language for the narration script. **Must match the selected dubbing voice language.** If the dubbing voice is non-Chinese, this param must be set explicitly — never leave it at the default when a non-Chinese voice is selected. |
 | `perspective` | str | No | "third_person" | "first_person" or "third_person" |
 | `target_character_name` | str | 1st person | - | Required when perspective=first_person |
 | `custom_script_result_path` | str | No | - | Custom script result path |
@@ -674,6 +676,8 @@ narrator-ai-cli task create generate-writing --json -d '{
 ```
 
 Optional: `refine_srt_gaps` (bool) — enables AI scene analysis. **Only set to `true` when user explicitly requests it.**
+
+> ⚠️ **Language linkage**: If the selected dubbing voice is non-Chinese, add `"language": "<target language>"` to this request to match. Do not omit this param for non-Chinese dubbing — the default is Chinese.
 
 **Output**: On creation returns `data.task_id`. Poll `task query <task_id> --json` until `status=2`. Extract `task_result` (narration script file path) and `order_info` from results:
 
