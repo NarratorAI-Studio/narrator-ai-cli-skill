@@ -279,16 +279,26 @@ narrator-ai-cli task create clip-data --json -d '{
 }'
 ```
 
-**Output**: Creation returns `data.task_id`. Poll until `status=2`. The task record contains **two different fields with similar names** — same trap as Fast Path:
-
-| Field in `tasks[0]` | Format | Use as next step's `order_num`? |
-|---|---|---|
-| `task_order_num` | prefixed string (e.g. `clip_data_xxxxx`) | ✅ **YES — this is what video-composing wants** |
-| `order_num` | 32-char hex internal hash | ❌ Submitting this returns `10001 任务关联记录数据异常` |
+**Output**: Creation returns `data.task_id`. Poll until `status=2`. The clip-data task record's `task_order_num` looks like `generate_clip_data_xxxxx`. **However, this is NOT what video-composing wants in Standard Path** — see the warning in Step 4 below.
 
 ### Step 4 — video-composing
 
-Identical to Fast Path Step 3 — including the field-name-collision warning. `order_num` parameter value comes from clip-data's `tasks[0].task_order_num` (prefixed string), **not** `tasks[0].order_num` (hex hash).
+> ⚠️ **Path asymmetry — Standard Path video-composing uses generate-writing's order_num, NOT clip-data's**:
+> - **Fast Path** (`fast-clip-data` → `video-composing`): pass `fast-clip-data`'s `task_order_num` (a combined `fast_writing_clip_data_xxxxx` that carries both contexts).
+> - **Standard Path** (`generate-writing` → `clip-data` → `video-composing`): pass **`generate-writing`'s `task_order_num`** (`generate_writing_xxxxx`). The `clip-data` step's own `task_order_num` (`generate_clip_data_xxxxx`) returns `10001 任务关联记录信息缺失: task_id=None, order_num=generate_clip_data_xxxxx`.
+>
+> Mental model: in Standard Path, video-composing chains back to the **writing** step (clip-data is a side-effect that must complete first but is not what video-composing keys off). In Fast Path, fast-clip-data is a combined writing+clip operation, so its order is the right anchor.
+
+```bash
+narrator-ai-cli task create video-composing --json -d '{
+  "order_num": "<generate-writing task_order_num — looks like generate_writing_xxxxx>"
+}'
+```
+
+Pre-flight checklist:
+1. `generate-writing` (Step 2) has reached `status=2` and you've recorded its `task_order_num`.
+2. `clip-data` (Step 3) has reached `status=2` (must be done — but its `task_order_num` is **not** the value you pass).
+3. Pass the value from step 1, not step 2.
 
 ### Step 5 (optional) — magic-video
 

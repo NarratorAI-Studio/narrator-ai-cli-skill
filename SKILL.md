@@ -204,7 +204,9 @@ Detailed list commands, response shapes, and field mappings live in `references/
 
 **Step 3 — clip-data**: pass `order_num` (= `task_order_num` from Step 2's polled task record, e.g. `generate_writing_xxxxx`), plus `bgm`, `dubbing`, `dubbing_type`. ⚠️ **Different from Fast Path's fast-clip-data**, which takes `task_id` — clip-data takes `order_num` instead. Poll until `status=2`; read `task_order_num` from the task record (input to video-composing).
 
-**Step 4-5 — video-composing & (optional) magic-video**: identical to Fast Path Step 3-4. `order_num` for video-composing is the `task_order_num` from clip-data (this path) — never from the writing step.
+**Step 4 — video-composing**: ⚠️ **Standard Path keys off `generate-writing`'s `task_order_num`** (`generate_writing_xxxxx`), **NOT** clip-data's. clip-data must reach `status=2` first as a prerequisite, but its own `task_order_num` (`generate_clip_data_xxxxx`) returns `10001 任务关联记录信息缺失` when submitted. This is opposite to Fast Path (where fast-clip-data is the right anchor) — see Important Notes #5.
+
+**Step 5 (optional) — magic-video**: only on explicit user request. See `references/magic-video.md`.
 
 ## Standalone Tasks
 
@@ -224,7 +226,11 @@ Both accept optional `clone_model` (default: `pro`).
 2. **`file_id` always comes from `file list` or `material list`.** Never guess.
 3. **Tasks are async.** Poll `task query <task_id> --json` every **5 seconds** until status `2` (success) or `3` (failed). Do not poll faster — see `references/operations.md` for the standard polling loop.
 4. **`search-movie` may take 60+ seconds** (Gradio backend, results cached 24h).
-5. **`video-composing.order_num` field-name trap**: video-composing's input parameter is named `order_num`, but its **value** must be the clip-step's `tasks[0].task_order_num` (a prefixed string like `fast_writing_clip_data_xxxxx`) — **NOT** `tasks[0].order_num` (a 32-char hex hash). Submitting the hex hash returns error `10001 任务关联记录数据异常`. Same parameter name, different semantics. Also: never use the writing step's order_num — always the immediately preceding clip step.
+5. **`video-composing.order_num` traps** (two distinct issues — both produce `10001`):
+   - **Field-name trap**: the value must be the source task's `tasks[0].task_order_num` (a prefixed string), **NOT** `tasks[0].order_num` (a 32-char hex hash). Submitting the hex returns `10001 任务关联记录数据异常`.
+   - **Path-asymmetric source**: which task's `task_order_num` to use **differs by path**:
+     - **Fast Path** → use **`fast-clip-data`'s** `task_order_num` (format: `fast_writing_clip_data_xxxxx`).
+     - **Standard Path** → use **`generate-writing`'s** `task_order_num` (format: `generate_writing_xxxxx`). The clip-data step's own `task_order_num` (`generate_clip_data_xxxxx`) returns `10001 任务关联记录信息缺失`. clip-data must still complete first as a prerequisite — but its order is not what video-composing keys off.
 6. **Prefer pre-built templates** over `popular-learning`. List with `task narration-styles --json`; preview at the resources URL above.
 7. **Use `-d @file.json`** for large request bodies to avoid shell quoting issues.
 8. **Use `task verify`** before expensive tasks to catch missing/invalid materials early; **`task budget`** to estimate point cost.
