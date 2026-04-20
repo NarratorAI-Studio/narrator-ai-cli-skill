@@ -186,7 +186,7 @@ Both accept optional `clone_model` (default: `pro`).
 2. **`file_id` always comes from `file list` or `material list`.** Never guess.
 3. **Tasks are async.** Poll `task query <task_id> --json` every **5 seconds** until status `2` (success) or `3` (failed). Do not poll faster — see `references/operations.md` for the standard polling loop.
 4. **`search-movie` may take 60+ seconds** (Gradio backend, results cached 24h).
-5. **`video-composing.order_num` is always the `task_order_num` from the immediately preceding clip step** (clip-data in Standard Path, fast-clip-data in Fast Path). Never use the writing step's order_num.
+5. **`video-composing.order_num` field-name trap**: video-composing's input parameter is named `order_num`, but its **value** must be the clip-step's `tasks[0].task_order_num` (a prefixed string like `fast_writing_clip_data_xxxxx`) — **NOT** `tasks[0].order_num` (a 32-char hex hash). Submitting the hex hash returns error `10001 任务关联记录数据异常`. Same parameter name, different semantics. Also: never use the writing step's order_num — always the immediately preceding clip step.
 6. **Prefer pre-built templates** over `popular-learning`. List with `task narration-styles --json`; preview at the resources URL above.
 7. **Use `-d @file.json`** for large request bodies to avoid shell quoting issues.
 8. **Use `task verify`** before expensive tasks to catch missing/invalid materials early; **`task budget`** to estimate point cost.

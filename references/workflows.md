@@ -95,7 +95,8 @@ narrator-ai-cli task create fast-writing --json -d @request.json
 {
   "tasks": [{
     "task_id": "<task_id>",
-    "order_num": "<order_num>"
+    "task_order_num": "fast_writing_xxxxx",
+    "order_num": "<32-char hex internal hash — NOT used downstream>"
   }],
   "file_ids": ["<file_id>"]
 }
@@ -121,17 +122,24 @@ narrator-ai-cli task create fast-clip-data --json -d '{
 }'
 ```
 
-**Output**: Creation response → `data.task_id`. Poll until `status=2`. On success, read `task_order_num` from the task record — this is the `order_num` for video-composing (Step 3).
+**Output**: Creation response → `data.task_id`. Poll until `status=2`. The completed task record contains **two different fields with similar names** — pick the right one:
+
+| Field in `tasks[0]` | Format | Use as next step's `order_num`? |
+|---|---|---|
+| `task_order_num` | `fast_writing_clip_data_xxxxx` (prefixed string) | ✅ **YES — this is what video-composing wants** |
+| `order_num` | `2c95333519417a28b0d9d754fc6b8cc5` (32-char hex) | ❌ Internal hash. Submitting this returns error `10001 任务关联记录数据异常` |
 
 ### Step 3 — video-composing
 
+> ⚠️ **Field name collision warning**: video-composing's input parameter is also named `order_num`, but its **value** must be the `task_order_num` field from Step 2's task record — NOT the `order_num` field. They have the same parameter name but different semantics. If you submit the hex `order_num`, the API returns `10001 任务关联记录数据异常`.
+
 ```bash
 narrator-ai-cli task create video-composing --json -d '{
-  "order_num": "<task_order_num from Step 2>"
+  "order_num": "<value of tasks[0].task_order_num from Step 2 — looks like fast_writing_clip_data_xxxxx>"
 }'
 ```
 
-**`order_num` is the only required parameter.** It comes from fast-clip-data's `task_order_num`.
+**`order_num` is the only required parameter.** Its value = fast-clip-data's `tasks[0].task_order_num` (the prefixed string), not `tasks[0].order_num` (the hex hash).
 
 **Output**: Creation returns `data.task_id`. Poll until `status=2`. Extract `video_url`:
 
@@ -241,11 +249,16 @@ narrator-ai-cli task create clip-data --json -d '{
 }'
 ```
 
-**Output**: Creation returns `data.task_id`. Poll until `status=2`. Read `task_order_num` from the task record — this is the `order_num` for video-composing (Step 4).
+**Output**: Creation returns `data.task_id`. Poll until `status=2`. The task record contains **two different fields with similar names** — same trap as Fast Path:
+
+| Field in `tasks[0]` | Format | Use as next step's `order_num`? |
+|---|---|---|
+| `task_order_num` | prefixed string (e.g. `clip_data_xxxxx`) | ✅ **YES — this is what video-composing wants** |
+| `order_num` | 32-char hex internal hash | ❌ Submitting this returns `10001 任务关联记录数据异常` |
 
 ### Step 4 — video-composing
 
-Identical to Fast Path Step 3. `order_num` comes from clip-data's `task_order_num` (this path).
+Identical to Fast Path Step 3 — including the field-name-collision warning. `order_num` parameter value comes from clip-data's `tasks[0].task_order_num` (prefixed string), **not** `tasks[0].order_num` (hex hash).
 
 ### Step 5 (optional) — magic-video
 
