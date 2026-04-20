@@ -209,6 +209,9 @@ narrator-ai-cli task create generate-writing --json -d '{
   "learning_model_id": "<from step 1 or pre-built template>",
   "playlet_name": "Movie Name",
   "playlet_num": "1",
+  "target_platform": "douyin",
+  "vendor_requirements": "",
+  "target_character_name": "<protagonist name, or empty string>",
   "episodes_data": [{
     "video_oss_key": "<video_file_id>",
     "srt_oss_key": "<srt_file_id>",
@@ -219,7 +222,30 @@ narrator-ai-cli task create generate-writing --json -d '{
 }'
 ```
 
-Optional: `refine_srt_gaps` (bool) — enables AI scene analysis. **Only set to `true` on explicit user request.**
+**Required parameters:**
+
+| Parameter | Type | Required | Notes |
+|---|---|---|---|
+| `learning_model_id` | str | ✅ | From popular-learning result OR a pre-built template `id` |
+| `playlet_name` | str | ✅ | Movie / drama name |
+| `playlet_num` | str | ✅ | Episode number, e.g. `"1"` |
+| `target_platform` | str | ✅ | Distribution platform — `"douyin"`, `"youtube"`, etc. **API rejects request if missing.** Ask the user; default to `"douyin"` if unspecified |
+| `vendor_requirements` | str | ✅ | Custom vendor requirements. **Pass empty string `""` if none** — omitting the key returns `10001 vendor_requirements Field required` |
+| `target_character_name` | str | ✅ | Protagonist name. **Required even for third-person narration** — pass empty string `""` if not applicable. API will return a Pydantic `string_type` error if `null` / missing |
+| `episodes_data` | list | ✅ | Each entry **must contain all four** sub-fields: `video_oss_key`, `srt_oss_key`, `negative_oss_key`, `num`. Dropping `negative_oss_key` returns `第N个剧集缺少必要字段: negative_oss_key` |
+
+**Optional parameters:**
+
+| Parameter | Type | Default | Notes |
+|---|---|---|---|
+| `refine_srt_gaps` | bool | `false` | Enables AI scene analysis. **Only set to `true` on explicit user request** |
+| `language` | str | `"Chinese (中文)"` | Output language for the narration script — see Language linkage below |
+
+> ⚠️ **Common 10001 errors and their fix** (in order — fix one and the next surfaces):
+> 1. `target_platform Field required` → add `"target_platform": "douyin"` (or other platform)
+> 2. `vendor_requirements Field required` → add `"vendor_requirements": ""`
+> 3. `target_character_name ... Input should be a valid string` → add `"target_character_name": "<name or empty string>"`
+> 4. `第N个剧集缺少必要字段: negative_oss_key` → ensure every `episodes_data` entry contains all of `video_oss_key`, `srt_oss_key`, `negative_oss_key`, `num`
 
 > ⚠️ **Language linkage**: If the selected dubbing voice is non-Chinese, add `"language": "<target language>"` to this request. Default is Chinese; do NOT omit when using a non-Chinese voice. (See SKILL.md § Resource Selection Protocol § Language linkage.)
 
