@@ -254,6 +254,8 @@ narrator-ai-cli task create generate-writing --json -d '{
 ```json
 {
   "tasks": [{
+    "task_id": "<task_id>",
+    "task_order_num": "generate_writing_19c237b0_4ee66d",
     "task_result": "video-clips-data/.../narration.txt"
   }],
   "order_info": {
@@ -264,7 +266,7 @@ narrator-ai-cli task create generate-writing --json -d '{
 
 **Save (TWO different fields, both needed):**
 - `task_id` from the **creation response** — used to poll Step 2 to completion
-- `task_order_num` from the **completed task record** (after polling) — required as `order_num` input for clip-data in Step 3 (e.g. `generate_writing_19c237b0_4ee66d`)
+- `tasks[0].task_order_num` from the **completed poll response** — required as `order_num` input for clip-data in Step 3 (e.g. `generate_writing_19c237b0_4ee66d`). ⚠️ Do **not** use `order_info.order_num` (`script_xxxxx`); that's a separate billing-side identifier and is rejected by clip-data.
 
 ### Step 3 — clip-data
 
