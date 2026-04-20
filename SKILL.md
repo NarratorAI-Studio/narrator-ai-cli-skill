@@ -47,6 +47,20 @@ This file covers decision flow, the common workflow, and pointers. Detailed look
 | Magic Video — optional visual template step (catalog, params, language rules) | `references/magic-video.md` |
 | Polling pattern, task types, file ops, user account, error codes | `references/operations.md` |
 
+## Agent Rules (mandatory — apply across all steps)
+
+> **Always:**
+> - **Confirm before acting.** Every resource (source, BGM, dubbing, template) and every `magic-video` submission requires explicit user approval. Never auto-select, never auto-submit.
+> - **Source data, never invent.** Construct `confirmed_movie_json` from `material list` fields or `task search-movie` output. If neither yields it, ask the user — do not fabricate.
+> - **Honor the language chain.** The dubbing voice's language defines the writing task `language` param AND every `magic-video` text param. All three must match. → `references/magic-video.md` § Language Awareness
+> - **Paginate `material list` to exhaustion, search programmatically.** Fetch all pages until `total` is consumed, then `grep -i` or `python3 -c` on the JSON. Never trust truncated terminal display.
+> - **Poll with the canonical `while` loop at 5-second intervals.** Never use a fixed-iteration `for` loop. → `references/operations.md` § Task Polling
+>
+> **Never:**
+> - **Submit `magic-video` without showing the full request body** (templates + every `template_params` value) and getting user confirmation. The cost is 30 pts/minute and irreversible.
+> - **Submit Chinese default values for `magic-video` text params when narration language is non-Chinese.** The defaults are hardcoded Chinese and will appear as Chinese text in a non-Chinese video.
+> - **Use the 32-char hex `order_num` from any task record.** That's an internal hash. The value you want is `task_order_num` (prefixed string). Submitting hex returns `10001 任务关联记录数据异常`.
+
 ## Installation
 
 ```bash
@@ -164,14 +178,12 @@ Before any task, gather these resources **in this order, with explicit user conf
 Detailed list commands, response shapes, and field mappings live in `references/resources.md`.
 
 > ⚠️ **Universal rules — apply at every resource step:**
-> 1. **Never auto-select.** Fetch options via CLI, present to user, wait for confirmation.
-> 2. **Pre-filter by context.** Use `--search`, `--lang`, `--genre` flags to narrow results.
-> 3. **Default presentation: 5–8 options** with the resource ID and key descriptive fields.
-> 4. **If the user has no preference**: present **3 recommendations** with a one-line reason for each. Still wait for confirmation.
-> 5. **Confirm one resource at a time.** Do not advance until the current one is confirmed.
+> 1. **Pre-filter by context.** Use `--search`, `--lang`, `--genre` flags to narrow results.
+> 2. **Default presentation: 5–8 options** with the resource ID and key descriptive fields.
+> 3. **If the user has no preference**: present **3 recommendations** with a one-line reason for each. Still wait for confirmation.
+> 4. **Confirm one resource at a time.** Do not advance until the current one is confirmed.
 
-> ⚠️ **Language linkage** (single source of truth — applies across the whole pipeline):
-> Once the dubbing voice is confirmed, the narration script `language` param **must match** the voice's language. If the voice is **not Chinese (普通话)**, explicitly set `language` in fast-writing / generate-writing — do NOT leave the default `"Chinese (中文)"`. The same target language must also flow into magic-video template text params (see `references/magic-video.md`). If the user pre-specified a `language` value that conflicts with the chosen voice, surface the mismatch and ask before proceeding.
+> ⚠️ **Dubbing → writing `language` mismatch check**: if the user pre-specified a `language` value that conflicts with the chosen voice, surface the mismatch and ask before proceeding. (The general language-chain rule lives in Agent Rules above.)
 
 ## Fast Path — High-Level Flow
 
@@ -204,7 +216,7 @@ Detailed list commands, response shapes, and field mappings live in `references/
 
 **Step 3 — clip-data**: pass `order_num` (= `task_order_num` from Step 2's polled task record, e.g. `generate_writing_xxxxx`), plus `bgm`, `dubbing`, `dubbing_type`. ⚠️ **Different from Fast Path's fast-clip-data**, which takes `task_id` — clip-data takes `order_num` instead. Poll until `status=2`; read `task_order_num` from the task record (input to video-composing).
 
-**Step 4 — video-composing**: ⚠️ **Standard Path keys off `generate-writing`'s `task_order_num`** (`generate_writing_xxxxx`), **NOT** clip-data's. clip-data must reach `status=2` first as a prerequisite, but its own `task_order_num` (`generate_clip_data_xxxxx`) returns `10001 任务关联记录信息缺失` when submitted. This is opposite to Fast Path (where fast-clip-data is the right anchor) — see Important Notes #5.
+**Step 4 — video-composing**: ⚠️ **Standard Path keys off `generate-writing`'s `task_order_num`** (`generate_writing_xxxxx`), **NOT** clip-data's. clip-data must reach `status=2` first as a prerequisite, but its own `task_order_num` (`generate_clip_data_xxxxx`) returns `10001 任务关联记录信息缺失` when submitted. This is opposite to Fast Path (where fast-clip-data is the right anchor) — see Important Notes #4.
 
 **Step 5 (optional) — magic-video**: only on explicit user request. See `references/magic-video.md`.
 
@@ -222,18 +234,15 @@ Both accept optional `clone_model` (default: `pro`).
 
 ## Important Notes
 
-1. **`confirmed_movie_json` is required** for `target_mode=1` and `2`, optional for `3`. Construct from material fields when found in pre-built materials; use `search-movie` otherwise. **Never fabricate.**
+1. **`confirmed_movie_json` is required** for `target_mode=1` and `2`, optional for `3`. Construct from material fields when found in pre-built materials; use `search-movie` otherwise.
 2. **`file_id` always comes from `file list` or `material list`.** Never guess.
-3. **Tasks are async.** Poll `task query <task_id> --json` every **5 seconds** until status `2` (success) or `3` (failed). Do not poll faster — see `references/operations.md` for the standard polling loop.
-4. **`search-movie` may take 60+ seconds** (Gradio backend, results cached 24h).
-5. **`video-composing.order_num` traps** (two distinct issues — both produce `10001`):
-   - **Field-name trap**: the value must be the source task's `tasks[0].task_order_num` (a prefixed string), **NOT** `tasks[0].order_num` (a 32-char hex hash). Submitting the hex returns `10001 任务关联记录数据异常`.
-   - **Path-asymmetric source**: which task's `task_order_num` to use **differs by path**:
-     - **Fast Path** → use **`fast-clip-data`'s** `task_order_num` (format: `fast_writing_clip_data_xxxxx`).
-     - **Standard Path** → use **`generate-writing`'s** `task_order_num` (format: `generate_writing_xxxxx`). The clip-data step's own `task_order_num` (`generate_clip_data_xxxxx`) returns `10001 任务关联记录信息缺失`. clip-data must still complete first as a prerequisite — but its order is not what video-composing keys off.
-6. **Prefer pre-built templates** over `popular-learning`. List with `task narration-styles --json`; preview at the resources URL above.
-7. **Use `-d @file.json`** for large request bodies to avoid shell quoting issues.
-8. **Use `task verify`** before expensive tasks to catch missing/invalid materials early; **`task budget`** to estimate point cost.
+3. **`search-movie` may take 60+ seconds** (Gradio backend, results cached 24h).
+4. **`video-composing.order_num` is path-asymmetric** — which upstream task's `task_order_num` to use **differs by path** (the field-name rule — use `task_order_num`, not the hex `order_num` — is in Agent Rules above):
+   - **Fast Path** → use **`fast-clip-data`'s** `task_order_num` (format: `fast_writing_clip_data_xxxxx`).
+   - **Standard Path** → use **`generate-writing`'s** `task_order_num` (format: `generate_writing_xxxxx`). The clip-data step's own `task_order_num` (`generate_clip_data_xxxxx`) returns `10001 任务关联记录信息缺失`. clip-data must still complete first as a prerequisite — but its order is not what video-composing keys off.
+5. **Prefer pre-built templates** over `popular-learning`. List with `task narration-styles --json`; preview at the resources URL above.
+6. **Use `-d @file.json`** for large request bodies to avoid shell quoting issues.
+7. **Use `task verify`** before expensive tasks to catch missing/invalid materials early; **`task budget`** to estimate point cost.
 
 ## Data & Privacy
 

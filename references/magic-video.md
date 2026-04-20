@@ -65,7 +65,7 @@ When the narration target language is **not Chinese**, the agent MUST:
    - `bottom_disclaimer_text` default `本故事纯属虚构 请勿模仿` → e.g. English: `This story is purely fictional. Do not imitate.`
    - `vertical_text_content` default `影视效果 请勿模仿 合理安排生活` → e.g. English: `Cinematic effects only. Do not imitate. Manage your life wisely.`
    - `main_title`, `sub_title`, `watermark_text`, `slogan` — if left empty, AI may still generate Chinese; proactively ask for user input or suggest a translated value.
-4. **This rule applies even when the user does not mention language.** The pipeline language flows as a single chain: **dubbing voice language → narration script `language` → magic-video template text params.** All three must match. Never treat them as independent decisions.
+4. **This rule applies even when the user does not mention language.** The pipeline language is a single chain (dubbing → writing `language` → magic-video text params) — see SKILL.md § Agent Rules ("Honor the language chain"). Never treat the three steps as independent.
 5. **Ask all user-facing questions in the same language as the ongoing conversation.** Do not default to Chinese if the conversation is in another language.
 6. **Scope**: this rule governs magic-video template text params only. The narration-script `language` param is handled at the writing step (`fast-writing` / `generate-writing`).
 
