@@ -202,7 +202,7 @@ Detailed list commands, response shapes, and field mappings live in `references/
 
 **Step 2 — generate-writing**: pass `learning_model_id`, `playlet_name`, `playlet_num`, `episodes_data`. Save `task_id` from the creation response.
 
-**Step 3 — clip-data**: pass `task_id` from Step 2, plus `bgm`, `dubbing`, `dubbing_type`. Poll until `status=2`; read `task_order_num` from the task record.
+**Step 3 — clip-data**: pass `order_num` (= `task_order_num` from Step 2's polled task record, e.g. `generate_writing_xxxxx`), plus `bgm`, `dubbing`, `dubbing_type`. ⚠️ **Different from Fast Path's fast-clip-data**, which takes `task_id` — clip-data takes `order_num` instead. Poll until `status=2`; read `task_order_num` from the task record (input to video-composing).
 
 **Step 4-5 — video-composing & (optional) magic-video**: identical to Fast Path Step 3-4. `order_num` for video-composing is the `task_order_num` from clip-data (this path) — never from the writing step.
 

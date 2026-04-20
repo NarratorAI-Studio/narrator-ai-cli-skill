@@ -262,13 +262,17 @@ narrator-ai-cli task create generate-writing --json -d '{
 }
 ```
 
-**Save**: `task_id` from the creation response — required as input for clip-data.
+**Save (TWO different fields, both needed):**
+- `task_id` from the **creation response** — used to poll Step 2 to completion
+- `task_order_num` from the **completed task record** (after polling) — required as `order_num` input for clip-data in Step 3 (e.g. `generate_writing_19c237b0_4ee66d`)
 
 ### Step 3 — clip-data
 
+> ⚠️ **Input field name differs from fast-clip-data**: `clip-data` takes **`order_num`** (value = generate-writing's `task_order_num`, the prefixed string). `fast-clip-data` in Fast Path takes `task_id` instead. Same conceptual chaining, different parameter name. Submitting `task_id` to `clip-data` returns `10001 请输入合成时的任务ID或者订单号`.
+
 ```bash
 narrator-ai-cli task create clip-data --json -d '{
-  "task_id": "<task_id from generate-writing creation response>",
+  "order_num": "<task_order_num from Step 2 — looks like generate_writing_xxxxx>",
   "bgm": "<bgm_id>",
   "dubbing": "<voice_id>",
   "dubbing_type": "<dubbing_type from selected voice>"
