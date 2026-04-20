@@ -10,12 +10,18 @@ Reference for task polling, task management commands, file operations, user/acco
 
 ```bash
 # Standard polling loop — use this every time a task needs to be monitored
+# NOTE: variable is named `task_status`, not `status` — `$status` is a
+# read-only built-in in zsh (alias for $?), so plain `status=...` will
+# error with "read-only variable: status" on macOS default shell.
 TASK_ID="<task_id>"
 empty_streak=0
-MAX_EMPTY=12   # ~1 min of consecutive parse failures → bail out
-while true; do
+iter=0
+MAX_EMPTY=12        # ~1 min of consecutive parse failures → bail out
+MAX_ITERATIONS=720  # ~1 hour absolute cap → bail out regardless of status
+while [ "$iter" -lt "$MAX_ITERATIONS" ]; do
+  iter=$((iter + 1))
   result=$(narrator-ai-cli task query "$TASK_ID" --json 2>&1)
-  status=$(echo "$result" | python3 -c "
+  task_status=$(echo "$result" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -24,10 +30,10 @@ try:
 except Exception:
     print('')
 " 2>/dev/null)
-  echo "[$(date '+%H:%M:%S')] task=$TASK_ID status=$status"
-  [ "$status" = "2" ] && echo "Done." && break
-  [ "$status" = "3" ] && echo "Failed:" && echo "$result" && break
-  if [ -z "$status" ]; then
+  echo "[$(date '+%H:%M:%S')] iter=$iter task=$TASK_ID status=$task_status"
+  [ "$task_status" = "2" ] && echo "Done." && break
+  [ "$task_status" = "3" ] && echo "Failed:" && echo "$result" && break
+  if [ -z "$task_status" ]; then
     empty_streak=$((empty_streak + 1))
     if [ "$empty_streak" -ge "$MAX_EMPTY" ]; then
       echo "Aborting: $MAX_EMPTY consecutive unparseable responses. Last response:" && echo "$result"
@@ -38,9 +44,35 @@ except Exception:
   fi
   sleep 5
 done
+[ "$iter" -ge "$MAX_ITERATIONS" ] && echo "Aborting: hit MAX_ITERATIONS=$MAX_ITERATIONS (~1h). Last response:" && echo "$result"
 ```
 
-> ⚠️ **Why the empty-status guard**: `task query` may return non-JSON (network error, auth failure, CLI traceback). Without the guard, an empty `status` neither triggers success nor failure, and the loop runs forever. After `MAX_EMPTY` consecutive unparseable responses (~1 min at 5 s intervals), the loop bails out with the last raw response so the agent can diagnose.
+> ⚠️ **Why `task_status`, not `status`**: in zsh (macOS default shell) `$status` is a read-only built-in (alias for `$?`). Assigning to it errors out with `read-only variable: status` and the loop never starts. Use a different variable name.
+
+> ⚠️ **Why the empty-status guard**: `task query` may return non-JSON (network error, auth failure, CLI traceback). Without the guard, an empty `task_status` neither triggers success nor failure, and the loop runs forever. After `MAX_EMPTY` consecutive unparseable responses (~1 min at 5 s intervals), the loop bails out with the last raw response so the agent can diagnose.
+
+> ⚠️ **Why the absolute iteration cap**: `MAX_ITERATIONS=720` (~1 hour) is a belt-and-suspenders ceiling for the case where `task_status` parses cleanly to a value that is neither `"2"` nor `"3"` (e.g., the API adds a new status code, returns `"running"`, or the task is genuinely stuck in `1`). The empty-status guard does NOT catch this — non-empty parses reset `empty_streak` to 0. Without the cap, such a response loops forever. Tune `MAX_ITERATIONS` upward only for genuinely long-running tasks.
+
+> ⚠️ **If you write your own polling in Python instead of bash**: the API returns task `status` as an **integer** (`2`, `3`, etc.). Compare with `int` (`if s == 2`) **or** coerce both sides to string (`if str(s) == "2"`) — but be consistent. Using `if s == "2"` against an integer response (or vice versa) will silently never match and the loop will run forever.
+
+### Resuming after the loop bails out
+
+**Bailing out (`MAX_EMPTY` or `MAX_ITERATIONS` triggered) does NOT cancel the task** — the loop only stops local polling. The server-side task continues running independently. To resume:
+
+1. **Spot-check current status** with a single query (no loop):
+   ```bash
+   narrator-ai-cli task query "$TASK_ID" --json | python3 -m json.tool
+   ```
+   If `tasks[0].status` is already `2`, the task finished while you weren't watching — read result fields (`file_ids`, `task_order_num`, `video_url`, etc.) directly and continue to the next step. No need to re-poll.
+
+2. **Re-enter the loop** with the same `TASK_ID` if status is still `0` or `1`. The API has no notion of "who is polling" — re-querying simply returns the latest state.
+
+3. **Lost the `TASK_ID`?** List in-progress tasks (status `1`) and pick yours by type or recency:
+   ```bash
+   narrator-ai-cli task list --status 1 --json            # all in-progress
+   narrator-ai-cli task list --status 1 --type 9 --json   # in-progress fast-writing only
+   ```
+   See "Task type IDs" below for the `--type` mapping.
 
 **Polling rules:**
 - Poll every **5 seconds**. Faster polling adds API load without benefit.
