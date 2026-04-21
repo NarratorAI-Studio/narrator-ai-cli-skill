@@ -1,16 +1,16 @@
 {
   "name": "narrator-ai-cli-skill",
   "version": "1.0.4",
-  "description": "AI电影解说视频自动生成技能（AI解说大师 CLI Skill）。当用户需要创建电影解说视频、短剧解说、影视二创、AI配音旁白视频、film commentary、video narration、drama dubbing、movie narration时触发。内置93部电影素材、146首BGM、63种配音音色（11种语言）、90+解说模板。通过narrator-ai-cli命令行工具实现：搜片选片→选择模板→选BGM→选配音→生成文案→合成视频的全流程自动化。CLI client for Narrator AI (AI解说大师) video narration API. Use when user needs to create AI narration videos, manage narration tasks, browse dubbing/BGM/material resources, or automate video production.",
+  "description": "AI电影解说视频自动生成技能（AI解说大师 CLI Skill）。当用户需要创建电影解说视频、短剧解说、影视二创、AI配音旁白视频、film commentary、video narration、drama dubbing、movie narration时触发。内置丰富电影素材、BGM、多语种配音音色、解说模板。通过narrator-ai-cli命令行工具实现：搜片选片→选择模板→选BGM→选配音→生成文案→合成视频的全流程自动化。CLI client for Narrator AI (AI解说大师) video narration API. Use when user needs to create AI narration videos, manage narration tasks, browse dubbing/BGM/material resources, or automate video production.",
   "author": {
-    "name": "GridLtd-ProductDev",
+    "name": "NarratorAI-Studio",
     "email": "merlinyang@gridltd.com",
-    "url": "https://github.com/jieshuo-ai"
+    "url": "https://github.com/NarratorAI-Studio"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/GridLtd-ProductDev/narrator-ai-cli-skill.git"
+    "url": "https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git"
   },
   "keywords": [
     "video-narration",
@@ -27,7 +27,7 @@
     {
       "name": "narrator-ai-cli",
       "type": "pip",
-      "spec": "narrator-ai-cli @ https://github.com/GridLtd-ProductDev/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
+      "spec": "narrator-ai-cli @ https://github.com/NarratorAI-Studio/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
     }
   ],
   "requires": {

@@ -16,12 +16,18 @@ Magic Video is a value-added service applied **after** video-composing:
 
 ## Template Catalog
 
-Fetch real-time template details (params, descriptions, pricing) via API:
+List templates with name + price + description via the CLI:
 
 ```bash
-curl -X GET "https://openapi.jieshuo.cn/v2/task/commentary/get_magic_template_info" \
-    -H "app-key: $NARRATOR_APP_KEY"
+narrator-ai-cli task templates --json
 ```
+
+> ⚠️ The CLI list does **not** include per-template `params` schemas (e.g. `main_title`, `segment_count`, `bottom_disclaimer_text`). Use the static catalog below for params, or hit the raw endpoint when you need authoritative real-time param defaults:
+>
+> ```bash
+> curl -X GET "https://openapi.jieshuo.cn/v2/task/commentary/get_magic_template_info" \
+>     -H "app-key: $NARRATOR_APP_KEY"
+> ```
 
 Templates are organized by distribution platform and aspect ratio.
 

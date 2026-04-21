@@ -21,7 +21,7 @@ metadata:
     install:
       - name: narrator-ai-cli
         type: pip
-        spec: "narrator-ai-cli @ https://github.com/GridLtd-ProductDev/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
+        spec: "narrator-ai-cli @ https://github.com/NarratorAI-Studio/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
     requires:
       bins:
         - narrator-ai-cli
@@ -33,7 +33,7 @@ metadata:
 
 CLI client for [Narrator AI](https://openapi.jieshuo.cn) video narration API. Designed for AI agents and developers.
 
-- **CLI repo**: https://github.com/GridLtd-ProductDev/narrator-ai-cli
+- **CLI repo**: https://github.com/NarratorAI-Studio/narrator-ai-cli
 - **Resources preview** (BGM / dubbing / templates): https://ceex7z9m67.feishu.cn/wiki/WLPnwBysairenFkZDbicZOfKnbc
 
 ## Reference Index
@@ -167,7 +167,7 @@ Before any task, gather these resources **in this order, with explicit user conf
 Detailed list commands, response shapes, and field mappings live in `references/resources.md`.
 
 > ⚠️ **Universal rules — apply at every resource step:**
-> 1. **Pre-filter by context.** Use `--search`, `--lang`, `--genre` flags to narrow results.
+> 1. **Pre-filter by context.** Use the per-resource filter flag where supported: `bgm list --search`, `dubbing list --lang`, `task narration-styles --genre`. **`material list` does NOT accept these flags** — paginate the JSON and search programmatically with `grep -i` / `python3 -c`.
 > 2. **Default presentation: 5–8 options** with the resource ID and key descriptive fields.
 > 3. **If the user has no preference**: present **3 recommendations** with a one-line reason for each. Still wait for confirmation.
 > 4. **Confirm one resource at a time.** Do not advance until the current one is confirmed.
