@@ -1,6 +1,6 @@
 ---
 name: narrator-ai-cli
-version: "1.0.4"
+version: "1.0.5"
 license: MIT
 description: >-
   AI 电影/短剧解说视频自动生成（AI 解说大师 CLI Skill）。当用户需要创建电影解说视频、短剧解说、影视二创、AI 配音旁白视频、film commentary、video narration、drama dubbing、movie narration 时触发。内置电影素材库、BGM、多语种配音、解说模板。通过 narrator-ai-cli 命令行实现：搜片→选模板→选 BGM→选配音→生成文案→合成视频的全流程自动化。CLI client for Narrator AI video narration API.
@@ -78,6 +78,7 @@ This file covers decision flow, the common workflow, and pointers. Detailed look
 > - **Submit `magic-video` without showing the full request body** (templates + every `template_params` value) and getting user confirmation. The cost is 30 pts/minute and irreversible.
 > - **Submit Chinese default values for `magic-video` text params when narration language is non-Chinese.** The defaults are hardcoded Chinese and will appear as Chinese text in a non-Chinese video.
 > - **Submit `.task_id` (32-char hex) as `order_num`.** Downstream tasks want `.task_order_num` (the prefixed string like `generate_writing_xxxxx`), not `.task_id`. Submitting the hex returns `10001 任务关联记录数据异常`. The other look-alike — `.results.order_info.order_num` (`script_xxxxx`) — is also wrong; see `references/operations.md` § Task Query Response Shape.
+> - **Auto-switch paths after a failure.** If a step fails, surface the error to the user and ask explicitly: retry the same path, switch to the other path, or abort. Never infer a path switch on the agent's own initiative.
 
 ## Prerequisites
 
@@ -144,6 +145,8 @@ Two end-to-end paths produce a finished narrated video. Choose with the user bef
 \*\* popular-learning is skippable when using a pre-built template (recommended).
 
 > ⚠️ **Path is a standalone decision** — ask the user "Fast or Standard?" by itself, in its own message. Do not auto-select. Do not bundle it with `target_mode` or any other follow-up question.
+>
+> ⚠️ **Path choice is per-movie, evaluated fresh each time.** If the user switched paths for a previous movie in the same session (e.g. from Fast to Standard due to a failure), that choice has no bearing on the current movie. Always ask the path question anew for each new movie — do not carry over or infer the prior session's path.
 
 ### Fast Path internal: `target_mode` (ask only after path=Fast is confirmed)
 
@@ -189,7 +192,7 @@ Detailed list commands, response shapes, and field mappings live in `references/
 
 **Step 2 — fast-clip-data**: pass `task_id` + `file_id` from Step 1, plus `bgm`, `dubbing`, `dubbing_type`, and `episodes_data` with `video_oss_key` / `srt_oss_key` / `negative_oss_key`. Poll until top-level `.status=2`; read top-level `.task_order_num` from the response.
 
-**Step 3 — video-composing**: pass `order_num: <.task_order_num from Step 2>`, plus `bgm`, `dubbing`, `dubbing_type` (re-pass the same values from Step 2 — the API does not inherit them). All four are required; submitting only `order_num` returns `10001 查询解说工程任务结果失败`. Poll → `.results.tasks[0].video_url` is the finished MP4.
+**Step 3 — video-composing**: pass `order_num: <.task_order_num from Step 2>` only. Poll → `.results.tasks[0].video_url` is the finished MP4.
 
 **Step 4 (optional) — magic-video**: only on explicit user request. See `references/magic-video.md`.
 

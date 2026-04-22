@@ -142,16 +142,11 @@ narrator-ai-cli task create fast-clip-data --json -d '{
 
 ```bash
 narrator-ai-cli task create video-composing --json -d '{
-  "order_num": "<value of top-level .task_order_num from Step 2 — looks like fast_writing_clip_data_xxxxx>",
-  "bgm": "<bgm_id — same as Step 2>",
-  "dubbing": "<voice_id — same as Step 2>",
-  "dubbing_type": "<dubbing_type — same as Step 2>"
+  "order_num": "<value of top-level .task_order_num from Step 2 — looks like fast_writing_clip_data_xxxxx>"
 }'
 ```
 
-**Required parameters** (per `task types` definition): `order_num`, `bgm`, `dubbing`, `dubbing_type` — all four. Re-pass the same `bgm` / `dubbing` / `dubbing_type` values used in Step 2's fast-clip-data. Submitting only `order_num` returns `10001 查询解说工程任务结果失败`.
-
-`order_num`'s value = fast-clip-data's top-level `.task_order_num` (prefixed string).
+**Required parameters**: `order_num` only. `order_num`'s value = fast-clip-data's top-level `.task_order_num` (prefixed string).
 
 **Output**: Creation returns `data.task_id`. Poll until top-level `.status=2`. Extract `video_url` from the nested results:
 
