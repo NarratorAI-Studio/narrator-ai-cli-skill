@@ -82,7 +82,7 @@ narrator-ai-cli task create fast-writing --json -d @request.json
 | `playlet_num` | str | No | `"1"` | Episode/part number. Use `"1"` for single-episode; increment for multi-part |
 | `confirmed_movie_json` | obj | mode=1, 2; optional mode=3 | - | From material data (material found) or `search-movie` result. **Never fabricate.** |
 | `episodes_data` | list | mode=2, 3 | - | For fast-writing: `[{srt_oss_key, num}]`. For fast-clip-data: `[{video_oss_key, srt_oss_key, negative_oss_key, num}]` — video fields added at the clip-data step |
-| `model` | str | No | `"pro"` | `"pro"` (higher quality, 15 pts/char) or `"flash"` (faster, 5 pts/char) |
+| `model` | str | No | `"pro"` | `"pro"` (higher quality) or `"flash"` (faster). Pricing per thousand characters varies by `target_mode`: mode=1 → Flash 5 pts/千字, Pro 15 pts/千字; mode=2 or 3 → Flash 12 pts/千字, Pro 40 pts/千字. Actual charge: `consumed_points` in `task query` response. |
 | `language` | str | No | `"Chinese (中文)"` | Output language for the narration script. **Must match the selected dubbing voice language.** If voice is non-Chinese, set this explicitly — never leave at default |
 | `perspective` | str | No | `"third_person"` | `"first_person"` or `"third_person"` |
 | `target_character_name` | str | 1st person | - | Required when `perspective=first_person` |
