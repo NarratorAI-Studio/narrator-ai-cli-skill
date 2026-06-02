@@ -1,0 +1,275 @@
+name: Sync develop
+on:
+  push:
+    branches: [main, master]
+  schedule:
+    # Daily at 03:00 UTC (11:00 BJT). Catches drift between main and develop
+    # that didn't get triggered by a push — e.g., develop accumulated changes
+    # while main stayed quiet, or the canonical-org-file divergence pattern
+    # that hit the fleet on 2026-05-09 (DevOps#295). On a quiet repo this is
+    # a no-op (merge-tree equality short-circuits the merge); on a drifting
+    # repo it surfaces conflicts within 24h instead of waiting for the next
+    # main push.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Source branch to sync from (defaults to repo default)"
+        required: false
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: sync-develop-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ${{ vars.RUNNER_LABEL || 'blacksmith-2vcpu-ubuntu-2404' }}
+    steps:
+      - name: Determine source branch
+        id: src
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_BRANCH: ${{ inputs.branch }}
+        run: |
+          # On `push`: GITHUB_REF identifies which branch was pushed (main or master).
+          # On `schedule` / `workflow_dispatch` without an explicit branch: GITHUB_REF
+          # points at the workflow file branch, which on push events would be wrong.
+          # Fall back to the repo's default branch via the API.
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            BRANCH="${GITHUB_REF#refs/heads/}"
+          elif [[ -n "${INPUT_BRANCH:-}" ]]; then
+            BRANCH="$INPUT_BRANCH"
+          else
+            # PA-1: capture the failure mode explicitly. Previous version
+            # let any gh-api failure silently produce an empty BRANCH, which
+            # downstream commands would fail on with a confusing error.
+            if ! BRANCH=$(gh api "repos/$GITHUB_REPOSITORY" --jq .default_branch 2>/tmp/gh_err); then
+              err=$(head -c 200 /tmp/gh_err)
+              if [[ "$err" == *"suspended"* || "$err" == *"403"* ]]; then
+                echo "::error::gh api auth failure resolving default branch — likely Blacksmith runner bot suspension. See Gridltd-DevOps/.github#487."
+              else
+                echo "::error::Failed to resolve default branch via gh api: $err"
+              fi
+              exit 1
+            fi
+          fi
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Source branch (resolved for $GITHUB_EVENT_NAME): $BRANCH"
+
+      - name: Generate App Token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.SYNC_APP_ID }}
+          private-key: ${{ secrets.SYNC_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Check if sync needed (merge-tree simulation, squash-merge & direction safe)
+        id: check
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SRC_BRANCH: ${{ steps.src.outputs.branch }}
+        run: |
+          set -uo pipefail
+          git fetch origin "$SRC_BRANCH"
+          if ! git ls-remote --exit-code --heads origin develop >/dev/null 2>&1; then
+            echo "develop branch absent on origin — nothing to sync"
+            echo "sync_needed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Pick the merge strategy based on which methods the repo allows.
+          # Preference order:
+          #   1. --merge: preserves Git ancestry between main/master and develop
+          #      (best — matches narrator-ai-py#255 / #354 RCA recommendation).
+          #   2. --squash: collapses to a single commit on develop. Breaks
+          #      strict ancestry (next sync's merge-base computation gets weird),
+          #      but delivers the content. Worth the trade-off for repos that
+          #      enforce squash-only as policy (e.g. narrator-ai-web today) —
+          #      the alternative is develop never receiving infra updates.
+          #   3. --rebase: rewrites commits onto develop. Same ancestry-break
+          #      cost as --squash; chosen only when neither merge nor squash
+          #      is allowed.
+          #   4. None of the above: fail with a clear remediation message.
+          # PA-1: the prior version's `2>/dev/null || echo '{}'` silently
+          # degraded merge settings to "unknown" on any failure, which led
+          # to `--squash` fallback warnings without any visibility into
+          # whether the gh API was actually broken. gh_api_safe surfaces 403.
+          # shellcheck source=.github/workflows/scripts/common.sh
+          source .github/workflows/scripts/common.sh
+          if REPO_INFO=$(gh_api_safe "repos/$GITHUB_REPOSITORY" --jq '{m:.allow_merge_commit, s:.allow_squash_merge, r:.allow_rebase_merge}'); then
+            :  # success
+          else
+            rc=$?
+            if [[ $rc == 2 ]]; then
+              echo "::error::gh api auth failure resolving repo merge settings — likely Blacksmith runner bot suspension. See Gridltd-DevOps/.github#487."
+              exit 1
+            fi
+            echo "::warning::Could not resolve repo merge settings (rc=$rc); falling back to 'unknown' for all flags"
+            REPO_INFO='{}'
+          fi
+          ALLOW_MERGE=$(jq -r '.m // "unknown"' <<<"$REPO_INFO")
+          ALLOW_SQUASH=$(jq -r '.s // "unknown"' <<<"$REPO_INFO")
+          ALLOW_REBASE=$(jq -r '.r // "unknown"' <<<"$REPO_INFO")
+
+          if [[ "$ALLOW_MERGE" == "true" ]]; then
+            MERGE_METHOD="--merge"
+            MERGE_NOTE="merge commit (preserves ancestry)"
+          elif [[ "$ALLOW_SQUASH" == "true" ]]; then
+            MERGE_METHOD="--squash"
+            MERGE_NOTE="squash (degraded — breaks Git ancestry; develop will get infra content but next sync's merge-base may compute weirdly)"
+            echo "::warning title=sync-develop using degraded squash merge::Repository $GITHUB_REPOSITORY has allow_merge_commit=$ALLOW_MERGE; falling back to --squash. To upgrade to clean merge-commit ancestry: gh api -X PATCH repos/$GITHUB_REPOSITORY -f allow_merge_commit=true (or repo Settings → General → Pull Requests → tick 'Allow merge commits')."
+          elif [[ "$ALLOW_REBASE" == "true" ]]; then
+            MERGE_METHOD="--rebase"
+            MERGE_NOTE="rebase (degraded — same ancestry-break trade-off as squash)"
+            echo "::warning title=sync-develop using degraded rebase merge::Repository $GITHUB_REPOSITORY allows neither merge-commit nor squash; falling back to --rebase."
+          else
+            echo "::error title=sync-develop cannot run::Repository $GITHUB_REPOSITORY allows none of merge/squash/rebase (merge=$ALLOW_MERGE squash=$ALLOW_SQUASH rebase=$ALLOW_REBASE). Enable at least one merge method in repo Settings → General → Pull Requests."
+            echo "sync_needed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "merge_method=$MERGE_METHOD" >> "$GITHUB_OUTPUT"
+          echo "merge_method_note=$MERGE_NOTE" >> "$GITHUB_OUTPUT"
+          echo "sync-develop will use: $MERGE_METHOD ($MERGE_NOTE)"
+
+          git fetch origin develop
+
+          # Simulate merge of $SRC_BRANCH into develop. If the resulting tree
+          # equals develop's current tree, the merge is a no-op (develop
+          # already contains all source content — possibly via prior squash
+          # merges or because develop is ahead with its own unique commits).
+          # This is direction-aware and squash-merge safe.
+          #
+          # Note: when merge-tree detects a conflict it exits non-zero AND
+          # writes conflict info to stdout. We MUST NOT capture that as
+          # MERGED_TREE — use a separate success check via `if cmd; then`
+          # rather than command substitution with `|| echo ""`.
+          DEVELOP_TREE=$(git rev-parse "origin/develop^{tree}")
+          MERGE_TREE_OUT=$(mktemp)
+          if git merge-tree --write-tree origin/develop "origin/$SRC_BRANCH" >"$MERGE_TREE_OUT" 2>/dev/null; then
+            MERGED_TREE=$(cat "$MERGE_TREE_OUT")
+            rm -f "$MERGE_TREE_OUT"
+            if [[ "$MERGED_TREE" == "$DEVELOP_TREE" ]]; then
+              echo "Merging $SRC_BRANCH into develop is a no-op — no sync needed"
+              echo "sync_needed=false" >> "$GITHUB_OUTPUT"
+            else
+              DIFF_FILES=$(git diff --name-only origin/develop "$MERGED_TREE" | wc -l | tr -d " ")
+              echo "Merging $SRC_BRANCH into develop would update $DIFF_FILES files — sync needed"
+              echo "sync_needed=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            rm -f "$MERGE_TREE_OUT"
+            echo "::warning::merge-tree reported a conflict — let the merge step surface it"
+            echo "sync_needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open and merge sync PR
+        if: steps.check.outputs.sync_needed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SRC_BRANCH: ${{ steps.src.outputs.branch }}
+          MERGE_METHOD: ${{ steps.check.outputs.merge_method }}
+          MERGE_METHOD_NOTE: ${{ steps.check.outputs.merge_method_note }}
+        run: |
+          set -euo pipefail
+          # 'chore/' prefix matches every repo's branch-name ruleset in the
+          # fleet. 'bugfix/' (the historical choice) was rejected on repos
+          # whose ruleset regex only allows feat|fix|chore|docs|release|
+          # hotfix|refactor|test|reports|agent — e.g. OpenAgentSystem/gateway
+          # threw GH013 on every Sync develop run from 2026-05-12 onward.
+          SYNC_BRANCH="chore/sync-${SRC_BRANCH}-to-develop"
+
+          git config user.name "orgconfigsync[bot]"
+          git config user.email "orgconfigsync[bot]@users.noreply.github.com"
+
+          git switch -C "$SYNC_BRANCH" origin/develop
+          if ! git merge "origin/$SRC_BRANCH" --no-edit -m "chore: sync $SRC_BRANCH to develop (auto)"; then
+            echo "::error::Conflict merging $SRC_BRANCH into develop — manual resolution required."
+            exit 1
+          fi
+          git push -f origin "$SYNC_BRANCH"
+
+          PR_NUM=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --head "$SYNC_BRANCH" \
+            --base develop \
+            --state open \
+            --json number -q '.[0].number // empty')
+
+          PR_BODY="Automated sync of $SRC_BRANCH to develop. Generated by .github/workflows/sync-develop.yml. Merged directly via the orgconfigsync App (bypass_mode=pull_request)."
+
+          if [[ -z "$PR_NUM" ]]; then
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base develop \
+              --head "$SYNC_BRANCH" \
+              --title "chore: sync $SRC_BRANCH to develop" \
+              --body "$PR_BODY"
+            PR_NUM=$(gh pr list \
+              --repo "$GITHUB_REPOSITORY" \
+              --head "$SYNC_BRANCH" \
+              --base develop \
+              --state open \
+              --json number -q '.[0].number // empty')
+          fi
+
+          if [[ -z "$PR_NUM" || ! "$PR_NUM" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not resolve PR number after create (got '$PR_NUM')."
+            exit 1
+          fi
+
+          # Direct merge (no --auto): orgconfigsync App's bypass_mode=pull_request
+          # waives the review requirement when the App itself merges via PR semantics.
+          # --auto would wait for review approval (which would never come), so we merge
+          # directly. Required CI checks must still pass — if they haven't yet, retry.
+          #
+          # Merge method picked in the previous "Check if sync needed" step based on
+          # what the repo's settings allow:
+          #   --merge  (preferred, preserves ancestry per narrator-ai-py#255 RCA)
+          #   --squash (degraded, breaks ancestry but delivers content)
+          #   --rebase (degraded, same trade-off as squash)
+          # See $MERGE_METHOD_NOTE for which path this run is taking.
+          echo "Merging sync PR #$PR_NUM with $MERGE_METHOD ($MERGE_METHOD_NOTE)"
+          # Two-tier merge strategy:
+          # 1. First try a normal PR merge (no --admin). The orgconfigsync App's
+          #    bypass_mode=pull_request usually waives review requirements when
+          #    the App itself merges via PR semantics — works on most repos.
+          # 2. If that fails repeatedly, fall back to --admin. Some repos have
+          #    develop branch protection rules that don't include the App in
+          #    bypass list (observed across 6/22 repos in the fleet on
+          #    2026-05-09 — DevOps#295 follow-up). The App's installation
+          #    permissions on the org include admin, so --admin succeeds where
+          #    bypass_mode=pull_request is insufficient.
+          # Required CI checks still need to pass for the normal path; --admin
+          # bypasses them, so it is reserved for the fallback only.
+          for attempt in 1 2 3 4 5; do
+            if gh pr merge "$PR_NUM" \
+                --repo "$GITHUB_REPOSITORY" \
+                "$MERGE_METHOD" \
+                --delete-branch; then
+              echo "✓ Merged sync PR #$PR_NUM ($MERGE_METHOD)"
+              exit 0
+            fi
+            if [[ $attempt -eq 5 ]]; then break; fi
+            echo "::warning::Merge attempt $attempt failed (likely waiting on checks or branch policy). Retrying in 30s..."
+            sleep 30
+          done
+
+          echo "::warning::Standard merge failed after 5 attempts — falling back to --admin (branch protection or required checks not bypassed by orgconfigsync App alone)."
+          if gh pr merge "$PR_NUM" \
+              --repo "$GITHUB_REPOSITORY" \
+              --admin \
+              "$MERGE_METHOD" \
+              --delete-branch; then
+            echo "✓ Merged sync PR #$PR_NUM ($MERGE_METHOD) via --admin fallback"
+            exit 0
+          fi
+          echo "::error::Could not merge sync PR #$PR_NUM even with --admin. Manual intervention required — branch protection may forbid even admin merges, or the App lacks admin permission on this repo."
+          exit 1
