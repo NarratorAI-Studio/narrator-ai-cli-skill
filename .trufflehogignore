@@ -1,0 +1,12 @@
+# TruffleHog ignore patterns for the Gridltd fleet.
+#
+# One regex per line. Lines starting with # are comments.
+# Tested via `trufflehog filesystem . --exclude-paths .trufflehogignore`.
+#
+# Sister to `.gitleaks.toml`'s `[allowlist].paths` for security-test-
+# fixture files that intentionally contain synthetic patterns shaped
+# like real secrets — `__tests__/*-guard.test.js` and similar test
+# files. Same scoping intent.
+
+# Security-test-fixture files (tests for outbound-guard.test.js et al.)
+__tests__/[^/]*-guard\.test\.(js|ts|jsx|tsx)

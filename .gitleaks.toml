@@ -1,0 +1,118 @@
+title = "Gridltd gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "sensitive-config-env"
+description = "Detect sensitive environment values committed to config files"
+# Cover env-style config, JS, Python config, TOML, YAML, JSON, and common
+# container manifests where env assignments often get inlined.
+# Allow optional quotes around the key so JSON/JS object literals like
+# {"GRADIO_PASSWORD":"value"} still match.
+regex = '''(?im)(?:^|[\{,\n])[ \t]*(?:export[ \t]+|ENV[ \t]+)?["']?(FLY_API_TOKEN|N8N_ENCRYPTION_KEY|SANDBOX_KEY|GRADIO_PASSWORD)["']?[ \t]*[=:][ \t]*["']?([^"'\s#,\}\]\$][^"'\s#,\}\]]*)["']?'''
+path = '''(^|/)\.env(\.[^/]+)?$|(^|/)([^/]+\.)?(env|toml|ya?ml|json|ini|conf|config|cfg|properties|js|py)$|(^|/)Dockerfile$|(^|/)docker-compose[^/]*\.ya?ml$|(^|/)compose\.ya?ml$'''
+secretGroup = 2
+keywords = [
+  "FLY_API_TOKEN",
+  "N8N_ENCRYPTION_KEY",
+  "SANDBOX_KEY",
+  "GRADIO_PASSWORD",
+]
+# Allow known placeholder values that aren't real secrets — instructional
+# fill-via-tooling text that already exists in fleet config files (e.g.,
+# `SANDBOX_KEY = 'SET_VIA_FLYCTL_SECRETS'` in scripts/n8n-fly/fly.toml).
+# Without this, a backfill of central `.gitleaks.toml` to repos that
+# carry such placeholders produces immediate false-positives — surfaced
+# 2026-06-01 when verifying #634 (open-fastapi release-overwrite). The
+# patterns here are intentionally conservative; only add a new entry
+# when the value is OBVIOUSLY instructional (all-caps SCREAMING_SNAKE
+# with `SET_VIA_`, `FILL_FROM_`, `__REDACTED__`, `<placeholder>` shape).
+[rules.allowlist]
+description = "Skip obvious instructional placeholders for sensitive config vars"
+regexTarget = "match"
+regexes = [
+    # `SET_VIA_FLYCTL_SECRETS`, `SET_VIA_OP`, etc.
+    '''SET_VIA_[A-Z_]+''',
+    # `FILL_FROM_VAULT`, etc.
+    '''FILL_FROM_[A-Z_]+''',
+    # `__REDACTED__`, `__PLACEHOLDER__`
+    '''__[A-Z][A-Z_]*__''',
+    # `<your-token>`, `<placeholder>`, etc.
+    '''<[a-z][a-z\-]*>''',
+    # `CHANGEME`, `CHANGE_ME`
+    '''CHANGE_?ME''',
+]
+
+# Aliyun RAM AccessKey pair detection — not in gitleaks built-in defaults.
+# Added 2026-05-29 after #527 L1 + L2 incidents (16 months of in-history
+# exposure on the same RAM sub-account). The KeyId follows the pattern
+# `LTAI` + 18-26 base62 chars; the KeySecret is a 30-char base62 string
+# alongside it in the same yaml/env/config block. Detecting just the
+# KeyId is enough — KeyId alone identifies the credential pair for
+# revocation purposes, and KeySecret-without-KeyId is meaningless.
+[[rules]]
+id = "aliyun-ram-accesskey-id"
+description = "Aliyun RAM AccessKey ID detected. Disable at Aliyun console + scrub history per SECURITY.md SEV-1 rotation checklist."
+regex = '''\b(LTAI[A-Za-z0-9]{18,26})\b'''
+entropy = 3
+keywords = [
+  "LTAI",
+]
+
+# Aliyun OSS bucket-bound STS tokens (different prefix, broader access scope)
+[[rules]]
+id = "aliyun-sts-token"
+description = "Aliyun STS temporary access token detected. STS tokens are short-lived but should not be committed."
+regex = '''\b(STS\.[A-Za-z0-9]{40,})\b'''
+entropy = 3
+keywords = [
+  "STS.",
+]
+
+# Rule-level allowlist kept for the documented SHA-256 false-positive pattern
+# in this repo. The allowlist is scoped to pure 64-char lowercase hex strings,
+# which are not Square access tokens. Documented at
+# `Gridltd-DevOps/architecture-decisions`#559.
+[[rules]]
+id = "square-access-token"
+description = "Detected a Square Access Token, risking unauthorized payment processing and financial transaction exposure."
+regex = '''\b((?:EAAA|sq0atp-)[\w-]{22,60})(?:[\x60'"\s;]|\\[nr]|$)'''
+entropy = 2
+keywords = [
+  "sq0atp-",
+  "eaaa",
+]
+[rules.allowlist]
+description = "Allow 64-char hex strings (sha256 hashes), not Square API tokens"
+regexTarget = "match"
+regexes = ['''^[a-f0-9]{64}$''']
+
+# Path-based allowlist for security-test-fixture files.
+#
+# Files like `__tests__/outbound-guard.test.js` and similar (which TEST a
+# leak-detection scanner) intentionally contain synthetic strings that
+# LOOK like real secrets — PEM blocks, AWS-token-shaped strings, API key
+# patterns. The point of the test is "scanner correctly detects these"; a
+# real CI scanner false-positives on the fixtures themselves.
+#
+# Repos previously worked around this with per-commit fingerprint
+# entries in `.gitleaksignore` (e.g., gateway). Those rotate stale on
+# every new commit to the file. Path-based allowlist is the structural
+# fix.
+#
+# Scope is intentionally narrow — only `__tests__/.*-guard.test.{js,ts}`
+# pattern. Test files that have NO "-guard" in the name still get
+# scanned. New patterns can be added here as new security-test-fixture
+# files land.
+#
+# Background: incident in OpenAgentSystem/gateway#525 — every new commit
+# to outbound-guard.test.js produced a fresh gitleaks failure because
+# the per-commit fingerprint in .gitleaksignore went stale.
+[allowlist]
+description = "Skip leak detection inside security-scanner test-fixture files"
+paths = [
+    '''__tests__/[^/]*-guard\.test\.(js|ts)$''',
+    '''__tests__/[^/]*-guard\.test\.(jsx|tsx)$''',
+    # Add new fixture-file patterns here as security-test fixtures land.
+]
