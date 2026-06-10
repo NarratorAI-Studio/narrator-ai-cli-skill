@@ -1,42 +1,30 @@
 {
-  "name": "narrator-ai-cli-skill",
-  "version": "1.0.5",
-  "description": "AI电影解说视频自动生成技能（AI解说大师 CLI Skill）。当用户需要创建电影解说视频、短剧解说、影视二创、AI配音旁白视频、film commentary、video narration、drama dubbing、movie narration时触发。内置丰富电影素材、BGM、多语种配音音色、解说模板。通过narrator-ai-cli命令行工具实现：搜片选片→选择模板→选BGM→选配音→生成文案→合成视频的全流程自动化。CLI client for Narrator AI (AI解说大师) video narration API. Use when user needs to create AI narration videos, manage narration tasks, browse dubbing/BGM/material resources, or automate video production.",
-  "author": {
-    "name": "NarratorAI-Studio",
-    "email": "merlinyang@gridltd.com",
-    "url": "https://github.com/NarratorAI-Studio"
-  },
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git"
-  },
-  "keywords": [
-    "video-narration",
-    "film-commentary",
-    "ai-video",
-    "narrator-ai",
-    "short-drama",
-    "content-creation",
-    "dubbing",
-    "tts"
-  ],
-  "primaryEnv": "NARRATOR_APP_KEY",
-  "install": [
-    {
-      "name": "narrator-ai-cli",
-      "type": "pip",
-      "spec": "narrator-ai-cli @ https://github.com/NarratorAI-Studio/narrator-ai-cli/archive/refs/tags/v1.0.0.zip"
+  "name": "xiakan-content-factory",
+  "version": "3.0.0",
+  "description": "一键将电影名称转化为《瞎看什么》风格的高密度脚本与结构化卡点剪辑JSON时间轴",
+  "author": "cosren",
+  "entrypoint": "src/cli.py",
+  "settings": {
+    "LLM_API_KEY": {
+      "type": "string",
+      "description": "请输入你的大模型 API 密钥 (API Key)",
+      "required": true,
+      "secret": true
+    },
+    "LLM_BASE_URL": {
+      "type": "string",
+      "description": "请输入大模型 API 代理/基础路径",
+      "default": "https://api.deepseek.com/v1",
+      "required": true
+    },
+    "LLM_MODEL": {
+      "type": "string",
+      "description": "请输入使用的模型名称 (如 deepseek-chat, qwen-max, gpt-4o-mini)",
+      "default": "deepseek-chat",
+      "required": true
     }
-  ],
-  "requires": {
-    "bins": ["narrator-ai-cli"],
-    "env": ["NARRATOR_APP_KEY"]
   },
-  "skills": {
-    "narrator-ai-cli": {
-      "path": "SKILL.md"
-    }
+  "lifecycle": {
+    "on_install": "python3 -m src.cli verify"
   }
 }
