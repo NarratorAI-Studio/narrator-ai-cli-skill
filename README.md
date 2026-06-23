@@ -1,3 +1,11 @@
+<p align="center">
+  <a href="https://www.atlascloud.ai/?utm_source=github&utm_medium=link&utm_campaign=narrator-ai-cli-skill">
+    <img src="assets/atlas-cloud-logo.png" alt="Atlas Cloud" width="140" />
+  </a>
+  <br />
+  <sub><strong>Atlas Cloud</strong> provides OpenAI-compatible LLM APIs and async image/video generation APIs for narration, video, and agent-assisted media workflows.</sub>
+</p>
+
 # 🧠 Narrator AI CLI Skill — Teach Your AI Agent to Create Movie Narration Videos
 
 [中文文档](README_CN.md)
