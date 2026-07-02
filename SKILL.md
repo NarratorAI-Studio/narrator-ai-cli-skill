@@ -45,6 +45,7 @@ This file covers decision flow, the common workflow, and pointers. Detailed look
 | Resource selection (material / BGM / dubbing / templates) — list commands, response formats, field mapping | `references/resources.md` |
 | Full workflow steps with parameter tables and JSON examples (Fast Path + Standard Path) | `references/workflows.md` |
 | Magic Video — optional visual template step (catalog, params, language rules) | `references/magic-video.md` |
+| Atlas Cloud media assist — optional image/video asset generation before file import or Magic Video | `references/atlas-cloud-media.md` |
 | Polling pattern, task types, file ops, user account, error codes | `references/operations.md` |
 
 ## Pipeline at a Glance
