@@ -55,6 +55,18 @@ git clone https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git \
   ~/.openclaw/skills/narrator-ai-cli
 ```
 
+**Autohand Code:**
+```bash
+mkdir -p ~/.autohand/skills
+git clone https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git \
+  ~/.autohand/skills/narrator-ai-cli
+
+# Or install only for the current project:
+mkdir -p .autohand/skills
+git clone https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git \
+  .autohand/skills/narrator-ai-cli
+```
+
 **Windsurf / Claude Code:**
 ```bash
 mkdir -p /path/to/your/project/.skills
@@ -100,6 +112,7 @@ Once installed, use natural language:
 | Platform | Setup | Status |
 |----------|-------|--------|
 | **OpenClaw** | `git clone` into skills directory | ✅ Verified |
+| **Autohand Code** | `git clone` into `~/.autohand/skills` or `.autohand/skills` | ✅ Compatible |
 | **Windsurf** | `git clone` into .skills directory | ✅ Verified |
 | **WorkBuddy** (Tencent) | Upload SKILL.md + all files in references/ | ✅ Verified |
 | **QClaw** (Tencent) | Upload SKILL.md + all files in references/ | ✅ Verified |

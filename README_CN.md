@@ -55,6 +55,18 @@ git clone https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git \
   ~/.openclaw/skills/narrator-ai-cli
 ```
 
+**Autohand Code：**
+```bash
+mkdir -p ~/.autohand/skills
+git clone https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git \
+  ~/.autohand/skills/narrator-ai-cli
+
+# 或者只安装到当前项目：
+mkdir -p .autohand/skills
+git clone https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git \
+  .autohand/skills/narrator-ai-cli
+```
+
 **Windsurf / Claude Code：**
 ```bash
 mkdir -p /path/to/your/project/.skills
@@ -100,6 +112,7 @@ git clone https://github.com/NarratorAI-Studio/narrator-ai-cli-skill.git \
 | 平台 | 安装方式 | 状态 |
 |------|---------|------|
 | **小龙虾 OpenClaw** | `git clone` 到技能目录 | ✅ 已验证 |
+| **Autohand Code** | `git clone` 到 `~/.autohand/skills` 或 `.autohand/skills` | ✅ 兼容 |
 | **WorkBuddy**（腾讯） | 上传 SKILL.md + references/ 全部文件 | ✅ 已验证 |
 | **QClaw**（腾讯） | 上传 SKILL.md + references/ 全部文件 | ✅ 已验证 |
 | **Windsurf** | `git clone` 到 .skills 目录 | ✅ 已验证 |
