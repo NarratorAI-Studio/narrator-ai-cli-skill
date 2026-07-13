@@ -12,6 +12,7 @@ A generation request may be billable and irreversible. Before the `POST` request
 - text-to-video or image-to-video mode
 - the exact prompt and, for image-to-video, the first-frame image
 - every optional request field, including duration and resolution
+- the maximum number of five-second status checks
 - the expected cost shown by the current MiniMax pricing documentation
 
 Do not automatically retry the generation `POST`. A retry can create and charge for a duplicate task.
@@ -39,6 +40,24 @@ Select a currently supported model from the official API reference immediately b
 
 ```bash
 export MINIMAX_VIDEO_MODEL="<model ID from the selected region's current API reference>"
+export MINIMAX_MAX_POLLS="<approved positive integer>"
+
+case "${MINIMAX_API_KEY:-}" in
+  ""|"<"*) echo "Set MINIMAX_API_KEY before continuing." >&2; exit 1 ;;
+esac
+case "${MINIMAX_VIDEO_MODEL:-}" in
+  ""|"<"*) echo "Set MINIMAX_VIDEO_MODEL before continuing." >&2; exit 1 ;;
+esac
+case "${MINIMAX_API_BASE:-}" in
+  https://api.minimax.io/v1|https://api.minimaxi.com/v1) ;;
+  *) echo "Select a documented MINIMAX_API_BASE value." >&2; exit 1 ;;
+esac
+case "${MINIMAX_MAX_POLLS:-}" in
+  ""|"<"*|0*|*[!0-9]*)
+    echo "Set MINIMAX_MAX_POLLS to a positive integer." >&2
+    exit 1
+    ;;
+esac
 ```
 
 ## Build the Approved Request
@@ -67,14 +86,21 @@ Show the complete `request.json` to the user and get final confirmation before c
 ## Create the Task
 
 ```bash
-CREATE_RESPONSE="$(curl -sS -X POST "$MINIMAX_API_BASE/video_generation" \
+jq -e 'type == "object"' request.json >/dev/null || exit 1
+
+if ! CREATE_RESPONSE="$(curl -sS --fail-with-body \
+  --connect-timeout 10 --max-time 60 \
+  -X POST "$MINIMAX_API_BASE/video_generation" \
   -H "Authorization: Bearer $MINIMAX_API_KEY" \
   -H "Content-Type: application/json" \
-  -d @request.json)"
+  -d @request.json)"; then
+  echo "Task creation failed or timed out; do not resubmit automatically." >&2
+  exit 1
+fi
 
-echo "$CREATE_RESPONSE" | jq .
-[ "$(echo "$CREATE_RESPONSE" | jq -r '.base_resp.status_code')" = "0" ] || exit 1
-TASK_ID="$(echo "$CREATE_RESPONSE" | jq -r '.task_id // empty')"
+printf '%s\n' "$CREATE_RESPONSE" | jq . || exit 1
+[ "$(jq -r '.base_resp.status_code' <<<"$CREATE_RESPONSE")" = "0" ] || exit 1
+TASK_ID="$(jq -r '.task_id // empty' <<<"$CREATE_RESPONSE")"
 [ -n "$TASK_ID" ] || exit 1
 ```
 
@@ -85,30 +111,39 @@ Do not repeat this command automatically if the response is interrupted or ambig
 Poll at five-second intervals until the API returns a terminal status. Stop on unknown statuses instead of guessing.
 
 ```bash
-while true; do
-  STATUS_RESPONSE="$(curl -sS -G "$MINIMAX_API_BASE/query/video_generation" \
+POLL_COUNT=0
+STATUS=""
+while [ "$POLL_COUNT" -lt "$MINIMAX_MAX_POLLS" ]; do
+  POLL_COUNT=$((POLL_COUNT + 1))
+  if ! STATUS_RESPONSE="$(curl -sS --fail-with-body \
+    --connect-timeout 10 --max-time 60 \
+    -G "$MINIMAX_API_BASE/query/video_generation" \
     -H "Authorization: Bearer $MINIMAX_API_KEY" \
-    --data-urlencode "task_id=$TASK_ID")"
+    --data-urlencode "task_id=$TASK_ID")"; then
+    echo "Status request failed or timed out." >&2
+    exit 1
+  fi
 
-  [ "$(echo "$STATUS_RESPONSE" | jq -r '.base_resp.status_code')" = "0" ] || {
-    echo "$STATUS_RESPONSE" | jq .
+  jq -e . >/dev/null <<<"$STATUS_RESPONSE" || exit 1
+  [ "$(jq -r '.base_resp.status_code' <<<"$STATUS_RESPONSE")" = "0" ] || {
+    printf '%s\n' "$STATUS_RESPONSE" | jq .
     exit 1
   }
 
-  STATUS="$(echo "$STATUS_RESPONSE" | jq -r '.status // empty')"
+  STATUS="$(jq -r '.status // empty' <<<"$STATUS_RESPONSE")"
   echo "task=$TASK_ID status=$STATUS"
   case "$STATUS" in
     Success)
-      FILE_ID="$(echo "$STATUS_RESPONSE" | jq -r '.file_id // empty')"
+      FILE_ID="$(jq -r '.file_id // empty' <<<"$STATUS_RESPONSE")"
       [ -n "$FILE_ID" ] || exit 1
       break
       ;;
     Fail)
-      echo "$STATUS_RESPONSE" | jq .
+      printf '%s\n' "$STATUS_RESPONSE" | jq .
       exit 1
       ;;
     Preparing|Queueing|Processing)
-      sleep 5
+      [ "$POLL_COUNT" -ge "$MINIMAX_MAX_POLLS" ] || sleep 5
       ;;
     *)
       echo "Unknown video generation status: $STATUS"
@@ -117,15 +152,26 @@ while true; do
   esac
 done
 
-FILE_RESPONSE="$(curl -sS -G "$MINIMAX_API_BASE/files/retrieve" \
-  -H "Authorization: Bearer $MINIMAX_API_KEY" \
-  --data-urlencode "file_id=$FILE_ID")"
-
-[ "$(echo "$FILE_RESPONSE" | jq -r '.base_resp.status_code')" = "0" ] || {
-  echo "$FILE_RESPONSE" | jq .
+[ "$STATUS" = "Success" ] || {
+  echo "Polling stopped after $MINIMAX_MAX_POLLS status checks." >&2
   exit 1
 }
-DOWNLOAD_URL="$(echo "$FILE_RESPONSE" | jq -r '.file.download_url // empty')"
+
+if ! FILE_RESPONSE="$(curl -sS --fail-with-body \
+  --connect-timeout 10 --max-time 60 \
+  -G "$MINIMAX_API_BASE/files/retrieve" \
+  -H "Authorization: Bearer $MINIMAX_API_KEY" \
+  --data-urlencode "file_id=$FILE_ID")"; then
+  echo "File retrieval failed or timed out." >&2
+  exit 1
+fi
+
+jq -e . >/dev/null <<<"$FILE_RESPONSE" || exit 1
+[ "$(jq -r '.base_resp.status_code' <<<"$FILE_RESPONSE")" = "0" ] || {
+  printf '%s\n' "$FILE_RESPONSE" | jq .
+  exit 1
+}
+DOWNLOAD_URL="$(jq -r '.file.download_url // empty' <<<"$FILE_RESPONSE")"
 [ -n "$DOWNLOAD_URL" ] || exit 1
 ```
 

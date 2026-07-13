@@ -243,4 +243,4 @@ Both accept optional `clone_model` (default: `pro`).
 - **Optional MiniMax endpoint**: MiniMax video generation sends the approved prompt and optional first-frame image to the selected global or China API endpoint. See `references/minimax-video-generation.md`.
 - **File upload**: presigned URL → OSS PUT → callback. Files are bound to your account, not public.
 - **Credentials**: `NARRATOR_APP_KEY` is stored at `~/.narrator-ai/config.yaml`; `MINIMAX_API_KEY` stays in the environment. Keep both private and never commit them.
-- **Scope**: this skill only orchestrates the CLI; it does not access files outside what you explicitly pass as input.
+- **Scope**: this skill orchestrates the CLI and optional approved video-generation requests; it does not access files outside what you explicitly pass as input.
