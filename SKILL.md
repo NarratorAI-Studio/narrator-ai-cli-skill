@@ -45,7 +45,7 @@ This file covers decision flow, the common workflow, and pointers. Detailed look
 | Resource selection (material / BGM / dubbing / templates) — list commands, response formats, field mapping | `references/resources.md` |
 | Full workflow steps with parameter tables and JSON examples (Fast Path + Standard Path) | `references/workflows.md` |
 | Magic Video — optional visual template step (catalog, params, language rules) | `references/magic-video.md` |
-| MiniMax video generation — optional text/image-to-video assets before file import | `references/minimax-video-generation.md` |
+| MiniMax video generation — optional text, image, and reference-to-video assets before file import | `references/minimax-video-generation.md` |
 | Polling pattern, task types, file ops, user account, error codes | `references/operations.md` |
 
 ## Pipeline at a Glance
@@ -240,7 +240,7 @@ Both accept optional `clone_model` (default: `pro`).
 ## Data & Privacy
 
 - **Default API endpoint**: Narrator AI workflow requests go to `https://openapi.jieshuo.cn`.
-- **Optional MiniMax endpoint**: MiniMax video generation sends the approved prompt and optional first-frame image to the selected global or China API endpoint. See `references/minimax-video-generation.md`.
+- **Optional MiniMax endpoint**: MiniMax video generation sends the approved prompt and any approved image, video, or audio references to the selected global or China API endpoint. See `references/minimax-video-generation.md`.
 - **File upload**: presigned URL → OSS PUT → callback. Files are bound to your account, not public.
 - **Credentials**: `NARRATOR_APP_KEY` is stored at `~/.narrator-ai/config.yaml`; `MINIMAX_API_KEY` stays in the environment. Keep both private and never commit them.
 - **Scope**: this skill orchestrates the CLI and optional approved video-generation requests; it does not access files outside what you explicitly pass as input.
